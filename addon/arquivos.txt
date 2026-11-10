@@ -1,0 +1,5 @@
+Dados.lua GoblinomicsDados 689c3face1a22105
+Goblinomics.lua SLASH_GOBLINOMICS1 53d7517084059b9c
+Janela.lua GoblinomicsJanela 739bec5a562ccae3
+Goblinomics.toc Interface eebb24b21c778c0a
+Icone.tga - 08997d3889a0871c

@@ -1,0 +1,2080 @@
+{
+ "_leia": "Onde cada material de coleta nasce. origem 'questie' = QuestieDB, posições do Classic convertidas para o Forever; 'forever' = QuestieDB, material que só existe no Forever (registros de jogadores); 'classic' = tabela feita à mão, não conferida; 'guilda' = confirmado por alguém da guilda no Forever (a ferramenta não mexe). zonas vem do mapa com mais pontos para o com menos; pontos = quantos pontos de coleta a base tem em cada um (os de origem 'forever' são inflados e não se comparam com os outros). raro = fica fora da média do mapa. nivel null = mapa novo do Forever, faixa desconhecida. Material de 'profissoes' sem entrada em 'materiais' aparece no site como 'sem mapa conhecido'.",
+ "_fonte": "Ervas e minérios: QuestieDB (https://github.com/Questie/QuestieDB), commit 4377c98 2026-11-24, licença GPL-3.0; gerado por ferramentas/questie_zonas.py. Esfolamento: tabela do Classic feita à mão.",
+ "zonas": {
+  "durotar": {
+   "pt": "Durotar",
+   "en": "Durotar",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "mulgore": {
+   "pt": "Mulgore",
+   "en": "Mulgore",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "tirisfal": {
+   "pt": "Clareiras de Tirisfal",
+   "en": "Tirisfal Glades",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "elwynn": {
+   "pt": "Floresta de Elwynn",
+   "en": "Elwynn Forest",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "dunmorogh": {
+   "pt": "Dun Morogh",
+   "en": "Dun Morogh",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "teldrassil": {
+   "pt": "Teldrassil",
+   "en": "Teldrassil",
+   "nivel": [
+    1,
+    10
+   ]
+  },
+  "barrens": {
+   "pt": "Sertões",
+   "en": "The Barrens",
+   "nivel": [
+    10,
+    25
+   ]
+  },
+  "silverpine": {
+   "pt": "Floresta de Pinhaprata",
+   "en": "Silverpine Forest",
+   "nivel": [
+    10,
+    20
+   ]
+  },
+  "westfall": {
+   "pt": "Cerro Oeste",
+   "en": "Westfall",
+   "nivel": [
+    10,
+    20
+   ]
+  },
+  "lochmodan": {
+   "pt": "Loch Modan",
+   "en": "Loch Modan",
+   "nivel": [
+    10,
+    20
+   ]
+  },
+  "darkshore": {
+   "pt": "Costa Negra",
+   "en": "Darkshore",
+   "nivel": [
+    10,
+    20
+   ]
+  },
+  "stonetalon": {
+   "pt": "Montanhas Pedragarra",
+   "en": "Stonetalon Mountains",
+   "nivel": [
+    15,
+    27
+   ]
+  },
+  "redridge": {
+   "pt": "Montanhas Cristarrubra",
+   "en": "Redridge Mountains",
+   "nivel": [
+    15,
+    25
+   ]
+  },
+  "ashenvale": {
+   "pt": "Vale Gris",
+   "en": "Ashenvale",
+   "nivel": [
+    18,
+    30
+   ]
+  },
+  "duskwood": {
+   "pt": "Floresta do Crepúsculo",
+   "en": "Duskwood",
+   "nivel": [
+    18,
+    30
+   ]
+  },
+  "hillsbrad": {
+   "pt": "Contraforte de Eira dos Montes",
+   "en": "Hillsbrad Foothills",
+   "nivel": [
+    20,
+    30
+   ]
+  },
+  "wetlands": {
+   "pt": "Pantanal",
+   "en": "Wetlands",
+   "nivel": [
+    20,
+    30
+   ]
+  },
+  "thousandneedles": {
+   "pt": "Mil Agulhas",
+   "en": "Thousand Needles",
+   "nivel": [
+    25,
+    35
+   ]
+  },
+  "alterac": {
+   "pt": "Montanhas de Alterac",
+   "en": "Alterac Mountains",
+   "nivel": [
+    30,
+    40
+   ]
+  },
+  "arathi": {
+   "pt": "Planalto Arathi",
+   "en": "Arathi Highlands",
+   "nivel": [
+    30,
+    40
+   ]
+  },
+  "stranglethorn": {
+   "pt": "Selva do Espinhaço",
+   "en": "Stranglethorn Vale",
+   "nivel": [
+    30,
+    45
+   ]
+  },
+  "desolace": {
+   "pt": "Desolação",
+   "en": "Desolace",
+   "nivel": [
+    30,
+    40
+   ]
+  },
+  "dustwallow": {
+   "pt": "Pântano Vadeoso",
+   "en": "Dustwallow Marsh",
+   "nivel": [
+    35,
+    45
+   ]
+  },
+  "badlands": {
+   "pt": "Ermos",
+   "en": "Badlands",
+   "nivel": [
+    35,
+    45
+   ]
+  },
+  "swamp": {
+   "pt": "Pântano das Mágoas",
+   "en": "Swamp of Sorrows",
+   "nivel": [
+    35,
+    45
+   ]
+  },
+  "tanaris": {
+   "pt": "Tanaris",
+   "en": "Tanaris",
+   "nivel": [
+    40,
+    50
+   ]
+  },
+  "feralas": {
+   "pt": "Feralas",
+   "en": "Feralas",
+   "nivel": [
+    40,
+    50
+   ]
+  },
+  "hinterlands": {
+   "pt": "Terras Agrestes",
+   "en": "The Hinterlands",
+   "nivel": [
+    40,
+    50
+   ]
+  },
+  "searing": {
+   "pt": "Garganta Abrasadora",
+   "en": "Searing Gorge",
+   "nivel": [
+    43,
+    50
+   ]
+  },
+  "azshara": {
+   "pt": "Azshara",
+   "en": "Azshara",
+   "nivel": [
+    45,
+    55
+   ]
+  },
+  "blasted": {
+   "pt": "Barreira do Inferno",
+   "en": "Blasted Lands",
+   "nivel": [
+    45,
+    55
+   ]
+  },
+  "ungoro": {
+   "pt": "Cratera Un'Goro",
+   "en": "Un'Goro Crater",
+   "nivel": [
+    48,
+    55
+   ]
+  },
+  "felwood": {
+   "pt": "Selva Maleva",
+   "en": "Felwood",
+   "nivel": [
+    48,
+    55
+   ]
+  },
+  "burningsteppes": {
+   "pt": "Estepes Ardentes",
+   "en": "Burning Steppes",
+   "nivel": [
+    50,
+    58
+   ]
+  },
+  "wpl": {
+   "pt": "Terras Pestilentas Ocidentais",
+   "en": "Western Plaguelands",
+   "nivel": [
+    51,
+    58
+   ]
+  },
+  "epl": {
+   "pt": "Terras Pestilentas Orientais",
+   "en": "Eastern Plaguelands",
+   "nivel": [
+    53,
+    60
+   ]
+  },
+  "winterspring": {
+   "pt": "Hibérnia",
+   "en": "Winterspring",
+   "nivel": [
+    53,
+    60
+   ]
+  },
+  "silithus": {
+   "pt": "Silithus",
+   "en": "Silithus",
+   "nivel": [
+    55,
+    60
+   ]
+  },
+  "zephras": {
+   "pt": "Zephras Isle",
+   "en": "Zephras Isle",
+   "nivel": null
+  },
+  "hyjal": {
+   "pt": "Monte Hyjal",
+   "en": "Mount Hyjal",
+   "nivel": null
+  },
+  "riverglades": {
+   "pt": "Riverglades",
+   "en": "Riverglades",
+   "nivel": null
+  }
+ },
+ "profissoes": {
+  "182": [
+   2447,
+   765,
+   2449,
+   785,
+   2450,
+   2452,
+   3820,
+   2453,
+   3355,
+   3369,
+   3356,
+   3357,
+   3818,
+   3821,
+   3358,
+   3819,
+   4625,
+   8831,
+   8836,
+   8838,
+   8839,
+   8845,
+   8846,
+   13464,
+   13463,
+   13465,
+   13466,
+   13467,
+   13468,
+   248821,
+   248822,
+   248823,
+   249274,
+   249399,
+   249424
+  ],
+  "186": [
+   2770,
+   2835,
+   2771,
+   2836,
+   2775,
+   2772,
+   2838,
+   2776,
+   3858,
+   7912,
+   7911,
+   10620,
+   12365,
+   11370,
+   248815,
+   249391,
+   249425,
+   249426
+  ],
+  "393": [
+   2934,
+   2318,
+   783,
+   2319,
+   4232,
+   4234,
+   4235,
+   4304,
+   8169,
+   8170,
+   8171,
+   5082,
+   6470,
+   6471,
+   7428,
+   8167,
+   8368,
+   8154,
+   15408,
+   8165,
+   15415,
+   15412,
+   15416,
+   15423,
+   15417,
+   15422,
+   15419,
+   249427,
+   249428,
+   249429,
+   248825,
+   248824
+  ]
+ },
+ "materiais": {
+  "2447": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "barrens",
+    "silverpine",
+    "elwynn",
+    "dunmorogh",
+    "zephras",
+    "teldrassil",
+    "westfall",
+    "lochmodan"
+   ],
+   "pontos": [
+    178,
+    159,
+    136,
+    123,
+    90,
+    90,
+    81,
+    74,
+    61,
+    58,
+    47
+   ],
+   "origem": "questie"
+  },
+  "765": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "barrens",
+    "silverpine",
+    "elwynn",
+    "tirisfal",
+    "lochmodan",
+    "dunmorogh",
+    "darkshore",
+    "westfall",
+    "teldrassil",
+    "zephras"
+   ],
+   "pontos": [
+    262,
+    195,
+    142,
+    126,
+    124,
+    123,
+    108,
+    91,
+    75,
+    66,
+    66,
+    54
+   ],
+   "origem": "questie"
+  },
+  "2449": {
+   "zonas": [
+    "barrens",
+    "durotar",
+    "elwynn",
+    "dunmorogh",
+    "westfall",
+    "mulgore",
+    "tirisfal",
+    "teldrassil",
+    "silverpine",
+    "redridge",
+    "darkshore",
+    "lochmodan"
+   ],
+   "pontos": [
+    187,
+    79,
+    78,
+    64,
+    63,
+    59,
+    52,
+    45,
+    38,
+    33,
+    31,
+    30
+   ],
+   "origem": "questie"
+  },
+  "785": {
+   "zonas": [
+    "barrens",
+    "westfall",
+    "darkshore",
+    "ashenvale",
+    "silverpine",
+    "redridge",
+    "lochmodan",
+    "wetlands",
+    "duskwood",
+    "stonetalon"
+   ],
+   "pontos": [
+    309,
+    95,
+    89,
+    86,
+    75,
+    74,
+    57,
+    50,
+    44,
+    32
+   ],
+   "origem": "questie"
+  },
+  "2450": {
+   "zonas": [
+    "barrens",
+    "duskwood",
+    "westfall",
+    "ashenvale",
+    "darkshore",
+    "redridge",
+    "silverpine",
+    "wetlands",
+    "lochmodan",
+    "hillsbrad",
+    "stonetalon"
+   ],
+   "pontos": [
+    169,
+    126,
+    99,
+    86,
+    81,
+    78,
+    69,
+    66,
+    49,
+    48,
+    43
+   ],
+   "origem": "questie"
+  },
+  "2452": {
+   "zonas": [
+    "barrens",
+    "ashenvale",
+    "westfall",
+    "duskwood",
+    "darkshore",
+    "redridge",
+    "silverpine",
+    "wetlands",
+    "lochmodan",
+    "hillsbrad",
+    "stonetalon"
+   ],
+   "pontos": [
+    367,
+    156,
+    154,
+    150,
+    145,
+    109,
+    107,
+    89,
+    75,
+    67,
+    54
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "3820": {
+   "zonas": [
+    "ashenvale",
+    "barrens",
+    "stranglethorn",
+    "wetlands",
+    "hillsbrad",
+    "darkshore",
+    "westfall",
+    "feralas",
+    "desolace"
+   ],
+   "pontos": [
+    101,
+    92,
+    83,
+    79,
+    65,
+    58,
+    29,
+    28,
+    22
+   ],
+   "origem": "questie"
+  },
+  "2453": {
+   "zonas": [
+    "barrens",
+    "stonetalon",
+    "duskwood",
+    "wetlands",
+    "redridge",
+    "hillsbrad",
+    "ashenvale",
+    "westfall",
+    "lochmodan",
+    "silverpine",
+    "thousandneedles",
+    "darkshore",
+    "desolace"
+   ],
+   "pontos": [
+    183,
+    159,
+    148,
+    147,
+    147,
+    139,
+    132,
+    131,
+    94,
+    87,
+    82,
+    79,
+    63
+   ],
+   "origem": "questie"
+  },
+  "3355": {
+   "zonas": [
+    "arathi",
+    "stonetalon",
+    "wetlands",
+    "barrens",
+    "duskwood",
+    "stranglethorn",
+    "thousandneedles",
+    "hillsbrad",
+    "ashenvale",
+    "redridge",
+    "westfall",
+    "silverpine",
+    "alterac",
+    "lochmodan"
+   ],
+   "pontos": [
+    156,
+    117,
+    89,
+    82,
+    70,
+    65,
+    60,
+    49,
+    46,
+    43,
+    40,
+    37,
+    31,
+    31
+   ],
+   "origem": "questie"
+  },
+  "3369": {
+   "zonas": [
+    "duskwood",
+    "desolace",
+    "wetlands",
+    "arathi",
+    "alterac",
+    "barrens"
+   ],
+   "pontos": [
+    41,
+    23,
+    18,
+    8,
+    7,
+    4
+   ],
+   "origem": "questie"
+  },
+  "3356": {
+   "zonas": [
+    "tanaris",
+    "duskwood",
+    "barrens",
+    "stranglethorn",
+    "wetlands",
+    "hillsbrad",
+    "ashenvale",
+    "stonetalon",
+    "arathi",
+    "redridge",
+    "westfall",
+    "silverpine",
+    "thousandneedles",
+    "lochmodan",
+    "alterac"
+   ],
+   "pontos": [
+    107,
+    83,
+    81,
+    77,
+    75,
+    63,
+    58,
+    48,
+    47,
+    43,
+    40,
+    37,
+    36,
+    31,
+    30
+   ],
+   "origem": "questie"
+  },
+  "3357": {
+   "zonas": [
+    "stranglethorn",
+    "wetlands",
+    "arathi",
+    "alterac",
+    "dustwallow",
+    "duskwood",
+    "hillsbrad",
+    "redridge",
+    "swamp",
+    "desolace",
+    "ashenvale",
+    "feralas"
+   ],
+   "pontos": [
+    120,
+    102,
+    92,
+    73,
+    58,
+    52,
+    50,
+    49,
+    44,
+    38,
+    35,
+    31
+   ],
+   "origem": "questie"
+  },
+  "3818": {
+   "zonas": [
+    "stranglethorn",
+    "arathi",
+    "swamp",
+    "alterac",
+    "dustwallow",
+    "badlands",
+    "hinterlands",
+    "duskwood",
+    "desolace",
+    "hillsbrad"
+   ],
+   "pontos": [
+    98,
+    97,
+    73,
+    68,
+    43,
+    40,
+    40,
+    32,
+    25,
+    19
+   ],
+   "origem": "questie"
+  },
+  "3821": {
+   "zonas": [
+    "stranglethorn",
+    "arathi",
+    "swamp",
+    "alterac",
+    "hinterlands",
+    "badlands",
+    "dustwallow",
+    "feralas",
+    "duskwood"
+   ],
+   "pontos": [
+    262,
+    171,
+    122,
+    105,
+    69,
+    53,
+    50,
+    47,
+    32
+   ],
+   "origem": "questie"
+  },
+  "3358": {
+   "zonas": [
+    "stranglethorn",
+    "arathi",
+    "swamp",
+    "alterac",
+    "dustwallow",
+    "badlands",
+    "hinterlands",
+    "feralas",
+    "desolace"
+   ],
+   "pontos": [
+    249,
+    118,
+    86,
+    59,
+    51,
+    40,
+    39,
+    31,
+    25
+   ],
+   "origem": "questie"
+  },
+  "3819": {
+   "zonas": [
+    "alterac"
+   ],
+   "pontos": [
+    34
+   ],
+   "origem": "questie"
+  },
+  "4625": {
+   "zonas": [
+    "tanaris",
+    "searing",
+    "stranglethorn",
+    "blasted",
+    "arathi",
+    "badlands",
+    "dustwallow",
+    "hinterlands",
+    "desolace",
+    "azshara",
+    "swamp",
+    "alterac",
+    "burningsteppes"
+   ],
+   "pontos": [
+    99,
+    77,
+    57,
+    50,
+    39,
+    35,
+    31,
+    30,
+    25,
+    25,
+    24,
+    23,
+    19
+   ],
+   "origem": "questie"
+  },
+  "8831": {
+   "zonas": [
+    "stranglethorn",
+    "arathi",
+    "dustwallow",
+    "hinterlands",
+    "tanaris",
+    "desolace",
+    "azshara",
+    "swamp",
+    "alterac",
+    "burningsteppes",
+    "searing",
+    "badlands",
+    "wpl"
+   ],
+   "pontos": [
+    57,
+    39,
+    31,
+    30,
+    27,
+    25,
+    25,
+    24,
+    23,
+    19,
+    15,
+    14,
+    14
+   ],
+   "origem": "questie"
+  },
+  "8836": {
+   "zonas": [
+    "wpl",
+    "epl",
+    "felwood"
+   ],
+   "pontos": [
+    65,
+    37,
+    27
+   ],
+   "origem": "questie"
+  },
+  "8838": {
+   "zonas": [
+    "stranglethorn",
+    "hinterlands",
+    "tanaris",
+    "azshara",
+    "dustwallow",
+    "burningsteppes",
+    "searing",
+    "wpl",
+    "swamp",
+    "epl"
+   ],
+   "pontos": [
+    30,
+    30,
+    27,
+    25,
+    19,
+    19,
+    15,
+    14,
+    13,
+    8
+   ],
+   "origem": "questie"
+  },
+  "8839": {
+   "zonas": [
+    "stranglethorn",
+    "hinterlands",
+    "tanaris",
+    "azshara",
+    "dustwallow",
+    "burningsteppes",
+    "searing",
+    "wpl",
+    "swamp",
+    "epl"
+   ],
+   "pontos": [
+    30,
+    30,
+    27,
+    25,
+    19,
+    19,
+    15,
+    14,
+    13,
+    8
+   ],
+   "origem": "questie"
+  },
+  "8845": {
+   "zonas": [
+    "hinterlands",
+    "desolace"
+   ],
+   "pontos": [
+    22,
+    13
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "8846": {
+   "zonas": [
+    "felwood",
+    "blasted",
+    "desolace",
+    "ashenvale"
+   ],
+   "pontos": [
+    63,
+    27,
+    15,
+    8
+   ],
+   "origem": "questie"
+  },
+  "13464": {
+   "zonas": [
+    "azshara",
+    "epl",
+    "hinterlands",
+    "wpl",
+    "burningsteppes",
+    "tanaris",
+    "winterspring",
+    "blasted"
+   ],
+   "pontos": [
+    25,
+    25,
+    20,
+    20,
+    19,
+    13,
+    12,
+    5
+   ],
+   "origem": "questie"
+  },
+  "13463": {
+   "zonas": [
+    "azshara",
+    "epl",
+    "hinterlands",
+    "wpl",
+    "burningsteppes",
+    "tanaris",
+    "winterspring",
+    "blasted"
+   ],
+   "pontos": [
+    25,
+    25,
+    20,
+    20,
+    19,
+    13,
+    12,
+    5
+   ],
+   "origem": "questie"
+  },
+  "13465": {
+   "zonas": [
+    "epl",
+    "wpl",
+    "burningsteppes",
+    "azshara",
+    "winterspring"
+   ],
+   "pontos": [
+    25,
+    20,
+    19,
+    12,
+    12
+   ],
+   "origem": "questie"
+  },
+  "13466": {
+   "zonas": [
+    "epl",
+    "felwood",
+    "wpl"
+   ],
+   "pontos": [
+    191,
+    71,
+    45
+   ],
+   "origem": "questie"
+  },
+  "13467": {
+   "zonas": [
+    "winterspring"
+   ],
+   "pontos": [
+    182
+   ],
+   "origem": "questie"
+  },
+  "13468": {
+   "zonas": [
+    "burningsteppes",
+    "winterspring",
+    "epl",
+    "silithus"
+   ],
+   "pontos": [
+    19,
+    18,
+    16,
+    7
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "2770": {
+   "zonas": [
+    "westfall",
+    "durotar",
+    "silverpine",
+    "redridge",
+    "wetlands",
+    "lochmodan",
+    "elwynn",
+    "duskwood",
+    "darkshore",
+    "dunmorogh",
+    "barrens",
+    "mulgore",
+    "hillsbrad",
+    "tirisfal",
+    "ashenvale",
+    "stonetalon"
+   ],
+   "pontos": [
+    211,
+    208,
+    155,
+    153,
+    151,
+    150,
+    148,
+    138,
+    127,
+    115,
+    111,
+    97,
+    88,
+    76,
+    71,
+    69
+   ],
+   "origem": "questie"
+  },
+  "2835": {
+   "zonas": [
+    "durotar",
+    "westfall",
+    "elwynn",
+    "silverpine",
+    "lochmodan",
+    "wetlands",
+    "duskwood",
+    "dunmorogh",
+    "redridge",
+    "darkshore",
+    "mulgore",
+    "barrens",
+    "hillsbrad",
+    "tirisfal"
+   ],
+   "pontos": [
+    208,
+    202,
+    148,
+    141,
+    139,
+    124,
+    118,
+    115,
+    110,
+    100,
+    97,
+    79,
+    77,
+    76
+   ],
+   "origem": "questie"
+  },
+  "2771": {
+   "zonas": [
+    "arathi",
+    "westfall",
+    "wetlands",
+    "stranglethorn",
+    "duskwood",
+    "silverpine",
+    "redridge",
+    "lochmodan",
+    "hillsbrad",
+    "barrens",
+    "darkshore",
+    "ashenvale"
+   ],
+   "pontos": [
+    321,
+    210,
+    193,
+    190,
+    170,
+    155,
+    153,
+    150,
+    117,
+    93,
+    61,
+    61
+   ],
+   "origem": "questie"
+  },
+  "2836": {
+   "zonas": [
+    "arathi",
+    "westfall",
+    "wetlands",
+    "stranglethorn",
+    "silverpine",
+    "redridge",
+    "lochmodan",
+    "duskwood",
+    "hillsbrad",
+    "barrens",
+    "darkshore"
+   ],
+   "pontos": [
+    304,
+    210,
+    180,
+    178,
+    155,
+    153,
+    150,
+    138,
+    98,
+    89,
+    61
+   ],
+   "origem": "questie"
+  },
+  "2775": {
+   "zonas": [
+    "arathi",
+    "westfall",
+    "wetlands",
+    "stranglethorn",
+    "alterac",
+    "lochmodan",
+    "badlands",
+    "silverpine",
+    "duskwood",
+    "redridge",
+    "hinterlands",
+    "hillsbrad",
+    "swamp",
+    "ashenvale"
+   ],
+   "pontos": [
+    337,
+    210,
+    181,
+    178,
+    167,
+    160,
+    155,
+    155,
+    138,
+    132,
+    117,
+    98,
+    76,
+    75
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "2772": {
+   "zonas": [
+    "arathi",
+    "stranglethorn",
+    "alterac",
+    "badlands",
+    "duskwood",
+    "wetlands",
+    "thousandneedles",
+    "hinterlands",
+    "desolace",
+    "swamp",
+    "ashenvale"
+   ],
+   "pontos": [
+    345,
+    235,
+    189,
+    170,
+    170,
+    165,
+    138,
+    127,
+    120,
+    101,
+    83
+   ],
+   "origem": "questie"
+  },
+  "2838": {
+   "zonas": [
+    "arathi",
+    "stranglethorn",
+    "alterac",
+    "duskwood",
+    "wetlands",
+    "badlands",
+    "thousandneedles",
+    "hinterlands",
+    "desolace",
+    "ashenvale",
+    "swamp"
+   ],
+   "pontos": [
+    323,
+    190,
+    180,
+    170,
+    165,
+    156,
+    138,
+    117,
+    105,
+    79,
+    77
+   ],
+   "origem": "questie"
+  },
+  "2776": {
+   "zonas": [
+    "arathi",
+    "burningsteppes",
+    "stranglethorn",
+    "alterac",
+    "duskwood",
+    "wetlands",
+    "badlands",
+    "hinterlands",
+    "blasted",
+    "searing",
+    "epl",
+    "swamp"
+   ],
+   "pontos": [
+    352,
+    246,
+    190,
+    180,
+    170,
+    165,
+    155,
+    117,
+    117,
+    112,
+    90,
+    79
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "3858": {
+   "zonas": [
+    "arathi",
+    "burningsteppes",
+    "stranglethorn",
+    "badlands",
+    "hinterlands",
+    "searing",
+    "blasted",
+    "alterac",
+    "swamp",
+    "epl",
+    "tanaris"
+   ],
+   "pontos": [
+    370,
+    265,
+    236,
+    169,
+    147,
+    128,
+    123,
+    119,
+    102,
+    98,
+    81
+   ],
+   "origem": "questie"
+  },
+  "7912": {
+   "zonas": [
+    "arathi",
+    "burningsteppes",
+    "stranglethorn",
+    "badlands",
+    "searing",
+    "hinterlands",
+    "alterac",
+    "blasted",
+    "swamp",
+    "epl",
+    "tanaris"
+   ],
+   "pontos": [
+    370,
+    265,
+    236,
+    169,
+    128,
+    127,
+    119,
+    118,
+    102,
+    98,
+    68
+   ],
+   "origem": "questie"
+  },
+  "7911": {
+   "zonas": [
+    "arathi",
+    "burningsteppes",
+    "badlands",
+    "hinterlands",
+    "blasted",
+    "alterac",
+    "epl",
+    "searing",
+    "wpl",
+    "tanaris"
+   ],
+   "pontos": [
+    370,
+    263,
+    169,
+    147,
+    123,
+    119,
+    99,
+    89,
+    80,
+    69
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "10620": {
+   "zonas": [
+    "burningsteppes",
+    "epl",
+    "blasted",
+    "hinterlands",
+    "silithus",
+    "ungoro",
+    "winterspring",
+    "searing"
+   ],
+   "pontos": [
+    480,
+    182,
+    119,
+    114,
+    82,
+    81,
+    76,
+    73
+   ],
+   "origem": "questie"
+  },
+  "12365": {
+   "zonas": [
+    "burningsteppes",
+    "epl",
+    "blasted",
+    "hinterlands",
+    "silithus",
+    "ungoro",
+    "winterspring",
+    "searing"
+   ],
+   "pontos": [
+    480,
+    182,
+    119,
+    114,
+    82,
+    81,
+    76,
+    73
+   ],
+   "origem": "questie"
+  },
+  "11370": {
+   "zonas": [
+    "burningsteppes",
+    "searing"
+   ],
+   "pontos": [
+    245,
+    113
+   ],
+   "origem": "questie",
+   "raro": true
+  },
+  "2934": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil"
+   ],
+   "origem": "classic"
+  },
+  "2318": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil",
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge"
+   ],
+   "origem": "classic"
+  },
+  "783": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil",
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "2319": {
+   "zonas": [
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge",
+    "ashenvale",
+    "duskwood",
+    "hillsbrad",
+    "wetlands",
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace"
+   ],
+   "origem": "classic"
+  },
+  "4232": {
+   "zonas": [
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge",
+    "ashenvale",
+    "duskwood",
+    "hillsbrad",
+    "wetlands",
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "4234": {
+   "zonas": [
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands"
+   ],
+   "origem": "classic"
+  },
+  "4235": {
+   "zonas": [
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "4304": {
+   "zonas": [
+    "stranglethorn",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands",
+    "searing",
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl"
+   ],
+   "origem": "classic"
+  },
+  "8169": {
+   "zonas": [
+    "stranglethorn",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands",
+    "searing",
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8170": {
+   "zonas": [
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl",
+    "epl",
+    "winterspring",
+    "silithus"
+   ],
+   "origem": "classic"
+  },
+  "8171": {
+   "zonas": [
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl",
+    "epl",
+    "winterspring",
+    "silithus"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "5082": {
+   "zonas": [
+    "mulgore",
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "6470": {
+   "zonas": [
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "6471": {
+   "zonas": [
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "7428": {
+   "zonas": [
+    "swamp",
+    "stranglethorn"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8167": {
+   "zonas": [
+    "hinterlands",
+    "tanaris",
+    "dustwallow"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8368": {
+   "zonas": [
+    "felwood",
+    "badlands"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8154": {
+   "zonas": [
+    "tanaris",
+    "blasted"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15408": {
+   "zonas": [
+    "silithus",
+    "burningsteppes"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8165": {
+   "zonas": [
+    "badlands",
+    "dustwallow",
+    "swamp"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15415": {
+   "zonas": [
+    "azshara",
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15412": {
+   "zonas": [
+    "swamp",
+    "feralas"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15416": {
+   "zonas": [
+    "burningsteppes"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15423": {
+   "zonas": [
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15417": {
+   "zonas": [
+    "ungoro"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15422": {
+   "zonas": [
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15419": {
+   "zonas": [
+    "felwood",
+    "wpl",
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "248821": {
+   "zonas": [
+    "hyjal"
+   ],
+   "pontos": [
+    87
+   ],
+   "origem": "forever"
+  },
+  "248822": {
+   "zonas": [
+    "azshara",
+    "ungoro",
+    "epl",
+    "hyjal",
+    "winterspring",
+    "burningsteppes",
+    "felwood",
+    "wpl",
+    "silithus"
+   ],
+   "pontos": [
+    189,
+    158,
+    118,
+    115,
+    101,
+    85,
+    55,
+    52,
+    32
+   ],
+   "origem": "forever",
+   "raro": true
+  },
+  "248823": {
+   "zonas": [
+    "hyjal"
+   ],
+   "pontos": [
+    38
+   ],
+   "origem": "forever"
+  },
+  "249274": {
+   "zonas": [
+    "epl",
+    "azshara",
+    "ungoro",
+    "winterspring",
+    "felwood",
+    "hyjal",
+    "hinterlands",
+    "swamp",
+    "burningsteppes",
+    "feralas",
+    "wpl"
+   ],
+   "pontos": [
+    495,
+    471,
+    435,
+    377,
+    353,
+    339,
+    246,
+    226,
+    187,
+    155,
+    146
+   ],
+   "origem": "forever"
+  },
+  "249399": {
+   "zonas": [
+    "barrens",
+    "ashenvale",
+    "stonetalon",
+    "hillsbrad",
+    "wetlands",
+    "stranglethorn",
+    "duskwood",
+    "westfall",
+    "silverpine",
+    "arathi",
+    "desolace",
+    "darkshore",
+    "thousandneedles"
+   ],
+   "pontos": [
+    1330,
+    607,
+    542,
+    473,
+    401,
+    395,
+    352,
+    339,
+    317,
+    293,
+    259,
+    255,
+    227
+   ],
+   "origem": "forever"
+  },
+  "249424": {
+   "zonas": [
+    "stranglethorn",
+    "arathi",
+    "alterac",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands",
+    "riverglades",
+    "dustwallow",
+    "badlands",
+    "azshara"
+   ],
+   "pontos": [
+    808,
+    451,
+    358,
+    316,
+    239,
+    237,
+    234,
+    222,
+    205,
+    183,
+    154
+   ],
+   "origem": "forever"
+  },
+  "248815": {
+   "zonas": [
+    "hyjal"
+   ],
+   "pontos": [
+    135
+   ],
+   "origem": "forever"
+  },
+  "249391": {
+   "zonas": [
+    "arathi",
+    "wetlands",
+    "stranglethorn",
+    "westfall",
+    "duskwood",
+    "lochmodan",
+    "silverpine",
+    "alterac",
+    "badlands",
+    "redridge",
+    "hillsbrad",
+    "hinterlands",
+    "thousandneedles"
+   ],
+   "pontos": [
+    952,
+    614,
+    534,
+    511,
+    472,
+    376,
+    354,
+    335,
+    311,
+    309,
+    285,
+    234,
+    214
+   ],
+   "origem": "forever"
+  },
+  "249425": {
+   "zonas": [
+    "arathi",
+    "burningsteppes",
+    "stranglethorn",
+    "badlands",
+    "alterac",
+    "hinterlands",
+    "blasted",
+    "searing",
+    "epl",
+    "swamp",
+    "wetlands"
+   ],
+   "pontos": [
+    666,
+    492,
+    357,
+    310,
+    262,
+    234,
+    227,
+    225,
+    180,
+    157,
+    125
+   ],
+   "origem": "forever"
+  },
+  "249426": {
+   "zonas": [
+    "burningsteppes",
+    "arathi",
+    "epl",
+    "searing",
+    "hinterlands",
+    "blasted",
+    "badlands",
+    "hyjal",
+    "silithus",
+    "ungoro",
+    "wpl"
+   ],
+   "pontos": [
+    969,
+    331,
+    273,
+    260,
+    231,
+    229,
+    155,
+    135,
+    134,
+    122,
+    105
+   ],
+   "origem": "forever"
+  }
+ }
+}
