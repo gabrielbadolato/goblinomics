@@ -16,7 +16,6 @@ import discord
 from discord import app_commands
 
 from . import botpessoal, config, consulta, guilda
-from .consulta import moeda
 
 log = logging.getLogger("goblinomics-bot")
 DOURADO = 0xF5C542
@@ -31,11 +30,30 @@ def _por_dia(v):
     return "–" if v is None else _numero(v) if v >= 10 else f"{v:.1f}".replace(".", ",")
 
 
-def _pct(atual, habitual):
+def _variacao(atual, habitual):
+    """'📉 −12%' frente ao habitual; vazio sem os dois preços."""
     if not atual or not habitual:
         return ""
     d = round((atual - habitual) / habitual * 100)
-    return f" ({'+' if d > 0 else ''}{d}% frente ao habitual)" if d else " (igual ao habitual)"
+    return f"{'📈' if d > 0 else '📉' if d < 0 else '➖'} {'+' if d > 0 else '−' if d < 0 else ''}{abs(d)}%"
+
+
+def moedas(cobre):
+    """Preço com as três moedas do jogo: 12🟡 34⚪, ou 5⚪ 18🟤 quando não chega a 1 de ouro."""
+    if cobre is None:
+        return "–"
+    cobre = round(cobre)
+    ouro, prata, resto = cobre // 10000, cobre // 100 % 100, cobre % 100
+    if ouro:
+        return f"{_numero(ouro)}🟡" + (f" {prata}⚪" if prata else "")
+    return (f"{prata}⚪ " if prata else "") + f"{resto}🟤" if resto or not prata else f"{prata}⚪"
+
+
+caber = botpessoal.caber
+
+
+CORES = {"POOR": 0x9D9D9D, "COMMON": 0xE8E8E8, "UNCOMMON": 0x1EFF00, "RARE": 0x0070DD, "EPIC": 0xA335EE, "LEGENDARY": 0xFF8000}
+WOWHEAD = "https://www.wowhead.com/forever/pt/item={}"
 
 
 class Cartoes:
@@ -44,64 +62,87 @@ class Cartoes:
     def __init__(self, cfg, dados, guardado=None):
         self.cfg, self.d, self.guardado = cfg, dados, guardado
 
+    def m(self, cobre):
+        return moedas(cobre)
+
+    def variacao(self, atual, habitual):
+        return _variacao(atual, habitual)
+
+    def elo(self, item_id):
+        """O nome do item como link para a página dele no Wowhead."""
+        return f"[{self.d.nome(item_id)}]({WOWHEAD.format(item_id)})"
+
+    def base(self, titulo, item_id=None):
+        """Cartão com o rodapé da foto. Com item: cor da raridade, ícone e atalhos para o Wowhead e o site."""
+        d = self.d
+        item = d.itens.get(item_id) if item_id else None
+        url = self.cfg.url_site + (f"#item={item_id}&casa={d.casa['id']}" if item_id else "")
+        cartao = discord.Embed(title=titulo, color=CORES.get(item[1], DOURADO) if item else DOURADO, url=url or None)
+        if item and item[7]:
+            cartao.set_thumbnail(url=f"https://wow.zamimg.com/images/wow/icons/large/{item[7]}.jpg" if item[8] == "wowhead"
+                                 else f"https://render.worldofwarcraft.com/{item[8]}/icons/56/{item[7]}.jpg")
+        faccao = {"Horde": "Horda", "Alliance": "Aliança"}.get(d.casa["nome"].split()[0], "Neutra")
+        cartao.set_footer(text=f"{faccao} {d.casa['id']} · foto de {d.quando():%d/%m %H:%M}")
+        return cartao
+
+    def atalhos(self, item_id):
+        partes = [f"[Wowhead]({WOWHEAD.format(item_id)})"]
+        if self.cfg.url_site:
+            partes.append(f"[Histórico no site]({self.cfg.url_site}#item={item_id}&casa={self.d.casa['id']})")
+        return "🔗 " + " · ".join(partes)
+
     def consumiveis(self):
         return botpessoal.cartao_dos_consumiveis(self, self.guardado.lista("consumiveis"))
 
     def desejos(self):
         return botpessoal.cartao_dos_desejos(self, self.guardado.lista("desejos"))
 
-    def base(self, titulo, item_id=None):
-        d = self.d
-        url = self.cfg.url_site + (f"#item={item_id}&casa={d.casa['id']}" if item_id else "")
-        cartao = discord.Embed(title=titulo, color=DOURADO, url=url or None)
-        faccao = {"Horde": "Horda", "Alliance": "Aliança"}.get(d.casa["nome"].split()[0], "Neutra")
-        cartao.set_footer(text=f"{faccao} {d.casa['id']} · foto de {d.quando():%d/%m %H:%M} · "
-                               "a Blizzard atualiza de hora em hora")
-        return cartao
-
     def preco(self, item_id):
         d, p = self.d, self.d.preco(item_id)
         cartao = self.base(d.nome(item_id), item_id)
         if p["min"] is None:
-            cartao.description = "Sem anúncio com preço de compra agora."
+            destaque = "Sem anúncio com preço de compra agora."
         else:
-            cartao.add_field(name="Menor preço", value=moeda(p["min"]) + _pct(p["min"], p["habitual"]), inline=False)
-            cartao.add_field(name="À venda", value=_numero(p["qtd"]))
+            variacao = _variacao(p["min"], p["habitual"])
+            destaque = f"**{moedas(p['min'])}**" + (f"　{variacao} frente ao habitual" if variacao else "")
+            cartao.add_field(name="📦 À venda", value=_numero(p["qtd"]))
+        cartao.description = f"{destaque}\n{self.atalhos(item_id)}"
         if p["habitual"]:
-            cartao.add_field(name="Habitual (7 dias)", value=moeda(p["habitual"]))
+            cartao.add_field(name="📊 Habitual (7 dias)", value=moedas(p["habitual"]))
         if p["por_dia"] is not None:
-            cartao.add_field(name="Vendas por dia (estimativa)", value="~" + _por_dia(p["por_dia"]))
+            cartao.add_field(name="🔁 Vendas por dia", value="~" + _por_dia(p["por_dia"]))
         if p["npc_paga"]:
-            cartao.add_field(name="NPC paga", value=moeda(p["npc_paga"]))
+            cartao.add_field(name="🏪 NPC paga", value=moedas(p["npc_paga"]))
         return cartao
 
     def receita(self, item_id):
         d, receitas = self.d, self.d.fabricar(item_id)
         cartao = self.base(d.nome(item_id), item_id)
         if not receitas:
-            cartao.description = "Nenhuma receita conhecida fabrica este item."
+            cartao.description = f"Nenhuma receita conhecida fabrica este item.\n{self.atalhos(item_id)}"
             return cartao
-        cartao.description = ("Conta simples, com o material ao preço de agora. O site também considera "
-                              "fabricar os materiais intermediários e a quantidade disponível.")
+        cartao.description = self.atalhos(item_id)
         for r in receitas[:MAX_RECEITAS]:
-            linhas = [f"{q:g} × {d.nome(mid)}: {moeda(preco)} cada ({fonte})" if preco is not None
-                      else f"{q:g} × {d.nome(mid)}: {fonte}" for mid, q, preco, fonte in r["materiais"]]
-            linhas.append(f"**Materiais:** {moeda(r['custo']) if r['custo'] is not None else 'sem preço completo'}")
-            linhas.append(f"**Venda, já sem a taxa de 5%:** {moeda(r['liquido'])}")
+            materiais = [f"`{q:g}×` {self.elo(mid)}　{moedas(preco)}" + ("" if fonte == "leilão" else f" · {fonte}")
+                         if preco is not None else f"`{q:g}×` {self.elo(mid)}　{fonte}" for mid, q, preco, fonte in r["materiais"]]
+            fecho = [f"Materiais **{moedas(r['custo']) if r['custo'] is not None else 'sem preço completo'}**"
+                     f"　Venda (−5%) **{moedas(r['liquido'])}**"]
             if r["lucro"] is not None:
-                linhas.append(f"**{'Lucro' if r['lucro'] >= 0 else 'Prejuízo'}:** {moeda(abs(r['lucro']))}")
-            linhas.append("**Na guilda:** " + (", ".join(r["quem"]) if r["quem"] else "ninguém sabe ainda"))
-            titulo = r["profissao"] + (f" · faz {r['feitos']:g} por vez" if r["feitos"] != 1 else "")
-            cartao.add_field(name=titulo, value="\n".join(linhas)[:1024], inline=False)
+                fecho.append(f"{'✅ Lucro' if r['lucro'] >= 0 else '❌ Prejuízo'} **{moedas(abs(r['lucro']))}**")
+            fecho.append("👥 " + (", ".join(r["quem"]) if r["quem"] else "ninguém da guilda sabe ainda"))
+            titulo = "🛠️ " + r["profissao"] + (f" · faz {r['feitos']:g} por vez" if r["feitos"] != 1 else "")
+            cartao.add_field(name=titulo, inline=False,
+                             value=caber(materiais, 1000 - len("\n".join(fecho))) + "\n" + "\n".join(fecho))
+        cartao.set_footer(text=cartao.footer.text + " · conta simples; a do site é mais completa")
         return cartao
 
     def quemfaz(self, item_id):
         d, receitas = self.d, self.d.fabricar(item_id)
         nomes = sorted({n for r in receitas for n in r["quem"]})
         cartao = self.base(d.nome(item_id), item_id)
-        cartao.description = (", ".join(nomes) if nomes else
-                              "Ninguém da guilda sabe fazer ainda." if receitas else
-                              "Nenhuma receita conhecida fabrica este item.")
+        cartao.description = ("👥 " + ", ".join(f"**{n}**" for n in nomes) if nomes else
+                              "👥 Ninguém da guilda sabe fazer ainda." if receitas else
+                              "Nenhuma receita conhecida fabrica este item.") + f"\n{self.atalhos(item_id)}"
         return cartao
 
     def montar(self, consulta_id, item_id=None):
@@ -110,14 +151,12 @@ class Cartoes:
 
     def ofertas(self):
         d = self.d
-        cartao = self.base("Ofertas: bem abaixo do preço habitual")
-        linhas = [f"**{d.nome(i)}**\n{moeda(minimo)}, habitual {moeda(habitual)} "
-                  f"({round((minimo - habitual) / habitual * 100)}%) · vende ~{_por_dia(por_dia)}/dia"
-                  for i, minimo, habitual, por_dia in d.ofertas()]
-        cartao.description = ("\n".join(linhas)[:4000] if linhas else "Nenhuma oferta com esses critérios agora.")
-        cartao.add_field(name="Como ler", inline=False, value=(
-            "Itens pelo menos 30% abaixo da média de 7 dias e que vendem 10 ou mais por dia. "
-            "A foto tem até uma hora: confira no jogo antes de comprar. Preço baixo também pode ser queda de verdade."))
+        cartao = self.base("📉 Ofertas: bem abaixo do preço habitual")
+        linhas = [f"`{n:>2}.` {self.elo(i)}\n　　**{moedas(minimo)}**　habitual {moedas(habitual)}　"
+                  f"{_variacao(minimo, habitual)}　~{_por_dia(por_dia)}/dia"
+                  for n, (i, minimo, habitual, por_dia) in enumerate(d.ofertas(), 1)]
+        cartao.description = caber(linhas, 3900) if linhas else "Nenhuma oferta com esses critérios agora."
+        cartao.set_footer(text=cartao.footer.text + " · 30% ou mais abaixo da média de 7 dias, 10+ vendas por dia")
         return cartao
 
     def resumo(self, novidades, promocoes):
@@ -126,34 +165,32 @@ class Cartoes:
         if novidades:
             linhas = []
             for nome, novas, marcos in novidades:
-                nomes = [d.nome(d.receita_por_id[r][0]) for r in novas if r in d.receita_por_id]
+                elos = [self.elo(d.receita_por_id[r][0]) for r in novas if r in d.receita_por_id]
                 if novas:
-                    mostradas = ", ".join(nomes[:4]) or "receitas novas"
-                    resto = len(novas) - min(len(nomes), 4)
-                    linhas.append(f"• **{nome}** aprendeu: {mostradas}" + (f" e mais {resto}" if resto and nomes else ""))
-                linhas += [f"• **{nome}** chegou a {marco} em {d.profissoes.get(str(prof), 'uma profissão')}"
+                    mostradas = ", ".join(elos[:4]) or "receitas novas"
+                    resto = len(novas) - min(len(elos), 4)
+                    linhas.append(f"📜 **{nome}** aprendeu {mostradas}" + (f" e mais {resto}" if resto and elos else ""))
+                linhas += [f"🎉 **{nome}** chegou a **{marco}** em {d.profissoes.get(str(prof), 'uma profissão')}"
                            for prof, marco in marcos]
-            blocos.append("**Novidades da guilda**\n" + "\n".join(linhas))
+            blocos.append("**Novidades da guilda**\n" + caber(linhas, 2200))
         if promocoes:
-            blocos.append("**Receitas que ninguém da guilda sabe, abaixo do preço habitual**\n" + "\n".join(
-                f"• {d.nome(i)}: {moeda(minimo)} (habitual {moeda(habitual)}, {round((minimo - habitual) / habitual * 100)}%)"
-                for i, minimo, habitual in promocoes))
+            blocos.append("**Receitas que ninguém da guilda sabe, abaixo do habitual**\n" + caber(
+                [f"🏷️ {self.elo(i)}\n　　**{moedas(minimo)}**　habitual {moedas(habitual)}　{_variacao(minimo, habitual)}"
+                 for i, minimo, habitual in promocoes], 1500))
         if not blocos:
             return None
-        cartao = self.base("Resumo do dia")
-        cartao.description = "\n\n".join(blocos)[:4000]
+        cartao = self.base("🗞️ Resumo do dia")
+        cartao.description = "\n\n".join(blocos)
         return cartao
 
     def lucrativas(self):
         d = self.d
-        cartao = self.base("Receitas com lucro que a guilda sabe fazer")
-        linhas = [f"**{d.nome(i)}** ({r['profissao']})\nlucro {moeda(r['lucro'])} · vende ~{_por_dia(d.por_dia.get(i))}/dia"
-                  f" · {', '.join(r['quem'][:3])}{' …' if len(r['quem']) > 3 else ''}"
-                  for i, r in d.lucrativas()]
-        cartao.description = ("\n".join(linhas)[:4000] if linhas else "Nenhuma receita da guilda dá lucro agora.")
-        cartao.add_field(name="Como ler", inline=False, value=(
-            "Conta simples: materiais ao preço de agora, venda pelo menor preço menos 5%. Ordenadas pelo lucro "
-            "vezes o que o mercado vende por dia. No site a conta é mais completa."))
+        cartao = self.base("💰 Receitas com lucro que a guilda sabe fazer")
+        linhas = [f"`{n:>2}.` {self.elo(i)} · {r['profissao']}\n　　lucro **{moedas(r['lucro'])}**　~{_por_dia(d.por_dia.get(i))}/dia"
+                  f"　👥 {', '.join(r['quem'][:3])}{' …' if len(r['quem']) > 3 else ''}"
+                  for n, (i, r) in enumerate(d.lucrativas(), 1)]
+        cartao.description = caber(linhas, 3900) if linhas else "Nenhuma receita da guilda dá lucro agora."
+        cartao.set_footer(text=cartao.footer.text + " · conta simples, ordenada pelo lucro vezes as vendas por dia")
         return cartao
 
 

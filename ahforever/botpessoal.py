@@ -8,7 +8,16 @@ import re
 
 import discord
 
-from .consulta import moeda
+
+
+def caber(linhas, limite):
+    """Junta as linhas inteiras que cabem no limite do Discord; nunca corta um link no meio."""
+    texto = ""
+    for linha in linhas:
+        if len(texto) + len(linha) + 3 > limite:
+            return texto + "…"
+        texto += linha + "\n"
+    return texto.rstrip("\n")
 
 log = logging.getLogger("goblinomics-bot")
 MAX_ALERTAS = 10
@@ -55,15 +64,13 @@ def cartao_do_personagem(cartoes, nome):
     membro = d.personagens.get(nome)
     if membro is None:
         return None
-    cartao = cartoes.base(f"{nome}: o que dá lucro agora")
-    profissoes = ", ".join(f"{d.profissoes.get(str(p), '?')} {pts}" for p, pts in membro["profissoes"])
-    linhas = [f"**{d.nome(i)}** ({r['profissao']})\nlucro {moeda(r['lucro'])} · vende ~{round(d.por_dia.get(i, 0))}/dia"
-              for i, r in d.lucrativas(personagem=nome)]
-    cartao.description = (f"{profissoes}\n\n" + ("\n".join(linhas) if linhas else
-                          "Nenhuma das receitas que você conhece dá lucro agora."))[:4000]
-    cartao.add_field(name="Como ler", inline=False, value=(
-        "Receitas que este personagem conhece, pela conta simples: materiais ao preço de agora, venda pelo menor "
-        "preço menos 5%. As receitas são lidas do jogo duas vezes por dia."))
+    cartao = cartoes.base(f"🧙 {nome}: o que dá lucro agora")
+    profissoes = " · ".join(f"{d.profissoes.get(str(p), '?')} **{pts}**" for p, pts in membro["profissoes"])
+    linhas = [f"`{n:>2}.` {cartoes.elo(i)} · {r['profissao']}\n　　lucro **{cartoes.m(r['lucro'])}**　~{round(d.por_dia.get(i, 0)):,}/dia".replace(",", ".") + f""
+              for n, (i, r) in enumerate(d.lucrativas(personagem=nome), 1)]
+    cartao.description = profissoes + "\n\n" + (caber(linhas, 3600) if linhas else
+                                                 "Nenhuma das receitas que você conhece dá lucro agora.")
+    cartao.set_footer(text=cartao.footer.text + " · conta simples; receitas lidas do jogo duas vezes por dia")
     return cartao
 
 
@@ -101,22 +108,22 @@ async def abrir_personagem(bot, interacao):
 
 # ---- Alertas pessoais ----
 
-def texto_do_alerta(d, alerta):
+def texto_do_alerta(cartoes, alerta):
+    d = cartoes.d
     agora = d.precos.get(alerta["item"], (None,))[0]
     sinal = "≤" if alerta["tipo"] == "abaixo" else "≥"
-    estado = " · ✅ valendo agora" if d.alerta_vale(alerta) else ""
-    aviso = " · ⚠️ não consegui te avisar em privado" if alerta.get("falhou") else ""
-    return f"{d.nome(alerta['item'])}: avisar quando {sinal} {moeda(alerta['preco'])} (agora {moeda(agora)}){estado}{aviso}"
+    estado = "　✅ no alvo" if d.alerta_vale(alerta) else ""
+    aviso = "　⚠️ não consegui te avisar em privado" if alerta.get("falhou") else ""
+    return (f"{cartoes.elo(alerta['item'])}\n　　avisar quando {sinal} **{cartoes.m(alerta['preco'])}**"
+            f"　agora {cartoes.m(agora)}{estado}{aviso}")
 
 
 def cartao_dos_alertas(cartoes, alertas):
-    cartao = cartoes.base("Meus alertas de preço")
-    cartao.description = ("\n".join(f"{n}. {texto_do_alerta(cartoes.d, a)}" for n, a in enumerate(alertas, 1))
-                          if alertas else "Você não tem alertas.")
-    cartao.add_field(name="Como funciona", inline=False, value=(
-        f"Até {MAX_ALERTAS} alertas. A cada foto nova (de hora em hora) o bot confere e te manda uma mensagem privada "
-        "quando o menor preço cruza o alvo. Avisa uma vez e só avisa de novo depois que o preço sair do alvo e voltar. "
-        "Precisa das mensagens diretas abertas para membros do servidor."))
+    cartao = cartoes.base("🔔 Meus alertas de preço")
+    cartao.description = (caber([f"`{n:>2}.` {texto_do_alerta(cartoes, a)}" for n, a in enumerate(alertas, 1)], 3800)
+                          if alertas else "Você não tem alertas. Toque em **Novo alerta** para criar o primeiro.")
+    cartao.set_footer(text=f"Até {MAX_ALERTAS} alertas · conferidos a cada foto nova · aviso em mensagem privada, "
+                           "uma vez por cruzamento")
     return cartao
 
 
@@ -230,7 +237,7 @@ async def conferir_alertas(bot):
                 continue
             cartoes = cartoes or await bot.cartoes()
             cartao = cartoes.preco(alerta["item"])
-            cartao.description = f"🔔 Seu alerta: {texto_do_alerta(d, alerta)}"
+            cartao.description = f"🔔 **Seu alerta chegou ao alvo**\n{texto_do_alerta(cartoes, alerta)}\n\n{cartao.description}"
             try:
                 await (await bot.fetch_user(int(uid))).send(embed=cartao)
                 alerta.pop("falhou", None)
@@ -245,29 +252,30 @@ async def conferir_alertas(bot):
 
 def cartao_dos_consumiveis(cartoes, lista):
     d = cartoes.d
-    cartao = cartoes.base("Consumíveis de raide: custo de hoje")
+    cartao = cartoes.base("🧪 Consumíveis de raide: custo de hoje")
     if not lista:
         cartao.description = "A lista está vazia. Quem gerencia o servidor monta com `/consumivel`."
         return cartao
     linhas, total, falta = [], 0, False
     for item_id, qtd in lista:
         preco = d.precos.get(item_id, (None,))[0]
-        habitual = d.habituais.get(item_id)
         if preco is None:
             falta = True
-            linhas.append(f"{qtd} × {d.nome(item_id)}: sem anúncio agora")
+            linhas.append(f"`{qtd}×` {cartoes.elo(item_id)}　sem anúncio agora")
             continue
         total += preco * qtd
-        pct = f" ({round((preco - habitual) / habitual * 100):+d}% frente ao habitual)" if habitual else ""
-        linhas.append(f"{qtd} × {d.nome(item_id)}: {moeda(preco)} cada{pct} = **{moeda(preco * qtd)}**")
-    cartao.description = "\n".join(linhas)[:3900]
-    cartao.add_field(name="Total por pessoa", value=moeda(total) + (" (sem os itens sem anúncio)" if falta else ""), inline=False)
+        variacao = cartoes.variacao(preco, d.habituais.get(item_id))
+        linhas.append(f"`{qtd}×` {cartoes.elo(item_id)}\n　　{cartoes.m(preco)} cada" + (f"　{variacao}" if variacao else "")
+                      + f"　= **{cartoes.m(preco * qtd)}**")
+    cartao.description = caber(linhas, 3800)
+    cartao.add_field(name="💰 Total por pessoa", value=f"**{cartoes.m(total)}**" + (" (sem os itens sem anúncio)" if falta else ""),
+                     inline=False)
     return cartao
 
 
 def cartao_dos_desejos(cartoes, lista):
     d = cartoes.d
-    cartao = cartoes.base("Lista de desejos da guilda")
+    cartao = cartoes.base("📋 Lista de desejos da guilda")
     if not lista:
         cartao.description = "A lista está vazia. Quem gerencia o servidor monta com `/desejo`."
         return cartao
@@ -276,18 +284,17 @@ def cartao_dos_desejos(cartoes, lista):
         preco, _, qtd = d.precos.get(item_id, (None, None, 0))
         habitual = d.habituais.get(item_id)
         if preco is None:
-            linhas.append(f"▫️ {d.nome(item_id)}: sem anúncio agora")
+            linhas.append(f"▫️ {cartoes.elo(item_id)}　sem anúncio agora")
             continue
         bom = preco <= alvo if alvo else bool(habitual and preco <= habitual * (1 - DESCONTO_DO_DESEJO))
-        partes = [f"{moeda(preco)}", f"{qtd:,} à venda".replace(",", ".")]
+        partes = [f"**{cartoes.m(preco)}**", f"{qtd:,} à venda".replace(",", ".")]
         if alvo:
-            partes.append(f"alvo {moeda(alvo)}")
+            partes.append(f"alvo {cartoes.m(alvo)}")
         if habitual:
-            partes.append(f"habitual {moeda(habitual)} ({round((preco - habitual) / habitual * 100):+d}%)")
-        linhas.append(f"{'✅' if bom else '▫️'} **{d.nome(item_id)}**: " + " · ".join(partes))
-    cartao.description = "\n".join(linhas)[:3900]
-    cartao.add_field(name="Como ler", inline=False, value=(
-        "✅ marca o que está bom para comprar agora: no alvo definido ou, sem alvo, pelo menos 15% abaixo do habitual."))
+            partes.append(f"habitual {cartoes.m(habitual)} {cartoes.variacao(preco, habitual)}")
+        linhas.append(f"{'✅' if bom else '▫️'} {cartoes.elo(item_id)}\n　　" + "　".join(partes))
+    cartao.description = caber(linhas, 3900)
+    cartao.set_footer(text=cartao.footer.text + " · ✅ no alvo ou, sem alvo, 15% ou mais abaixo do habitual")
     return cartao
 
 
