@@ -230,6 +230,9 @@ class Bot(discord.Client):
                 alvo = discord.Object(id=servidor)
                 self.tree.copy_global_to(guild=alvo)
                 registrados = await self.tree.sync(guild=alvo)
+            # Sem isto os comandos ficariam em dobro: os do servidor e os globais de antes.
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
         else:
             registrados = await self.tree.sync()
         log.info("comandos registrados: %s", ", ".join(sorted(c.name for c in registrados)))
