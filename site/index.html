@@ -583,6 +583,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <h2 class="titulo-bloco">O que comprar</h2>
       <form id="filtros-lista" onsubmit="return false">
         <button class="acao" type="button" id="copiar-lista">Copiar lista</button>
+        <button class="acao" type="button" id="copiar-auctionator" title="Copia os materiais no formato de importação do addon Auctionator (aba Compras, botão Importar). Os nomes vão na língua escolhida em Itens: use a mesma do jogo.">Copiar para o Auctionator</button>
         <button class="acao" type="button" id="limpar-lista">Esvaziar</button>
       </form>
       <div class="rolagem">
@@ -839,7 +840,9 @@ const TEXTOS_EN = {
   "Atributo ou sufixo": "Stat or suffix", "ex.: of the Monkey": "e.g. of the Monkey", "Preço máx. (ouro)": "Max price (gold)",
   "Limpar": "Clear", "Preço (un.)": "Price (each)", "Nível": "Level", "Disponível": "Available", "7 dias": "7 days",
   "Vendas/dia": "Sales/day", "Mercado (un.)": "Market (each)", "Carregando…": "Loading…", "Anterior": "Previous", "Próxima": "Next",
-  "Receita": "Recipe", "Guilda": "Guild", "Buscar receita": "Search recipe", "Lucro mínimo (ouro)": "Min profit (gold)", "Mín. à venda": "Min listed",
+  "Receita": "Recipe", "Copiar para o Auctionator": "Copy for Auctionator",
+  "Copia os materiais no formato de importação do addon Auctionator (aba Compras, botão Importar). Os nomes vão na língua escolhida em Itens: use a mesma do jogo.":
+    "Copies the materials in the Auctionator addon import format (Shopping tab, Import button). Names use the language chosen under Items: use the same as your game.", "Guilda": "Guild", "Buscar receita": "Search recipe", "Lucro mínimo (ouro)": "Min profit (gold)", "Mín. à venda": "Min listed",
   "Materiais intermediários": "Intermediate materials", "fabricar se compensar": "craft when cheaper",
   "Sem preço completo": "Missing prices", "mostrar": "show", "Minha habilidade": "My skill", "Subir habilidade": "Skill up",
   "só as que dão ponto": "only ones that give points", "Materiais brutos": "Raw materials", "Menor preço (un.)": "Lowest price (each)",
@@ -2207,7 +2210,7 @@ function filtrarArb() {
 }
 
 // ---- Lista de compras: receitas marcadas na aba Profissões e a soma dos materiais ----
-let textoLista = "";
+let textoLista = "", textoAuctionator = "";
 function desenharLista() {
   const escolhidas = Object.entries(prefs.lista).map(([rid, vezes]) => ({l: todasReceitas.find(l => l.rid === +rid), vezes}))
     .filter(e => e.l).sort((a, b) => a.l.nome.localeCompare(b.l.nome));
@@ -2259,6 +2262,9 @@ function desenharLista() {
     (completo ? ` · lucro <span class="${bruto - custo >= 0 ? "pos" : "neg"}">${moedaOuTraco(bruto - custo)}</span>` : "") +
     ` · preços de ${esc(rotulo(casaAtual))}; o total de cada material é o custo de comprar essa quantidade agora, do anúncio mais barato ao mais caro.` +
     (intermediarios.length ? `<br>Fabricar no caminho, por sair mais barato que comprar: ${esc(intermediarios.join(", "))}.` : "");
+  // Formato de importação do Auctionator: nome da lista e, separados por "^", os termos; entre aspas = nome exato.
+  // Só o que se compra no leilão. As quantidades ficam de fora: o campo delas muda entre versões do addon.
+  textoAuctionator = ["Goblinomics", ...itens.filter(c => c.fonte !== "NPC").map(c => `"${c.i.nome}"`)].join("^");
   textoLista = itens.map(c => `${c.q} x ${c.i.nome}${c.fonte === "NPC" ? " (NPC)" : ""}`).join("\n");
 }
 
@@ -2744,12 +2750,14 @@ $("usar-codigo").onclick = () => {
   Object.assign(prefs, novas); guardarPrefs(); location.reload();
 };
 $("limpar-lista").onclick = () => { prefs.lista = {}; guardarPrefs(); desenharLista(); };
-$("copiar-lista").onclick = async () => {
-  const botao = $("copiar-lista");
-  try { await navigator.clipboard.writeText(textoLista); botao.textContent = "Copiada"; }
+const copiarPeloBotao = (id, rotulo, texto) => $(id).onclick = async () => {
+  const botao = $(id);
+  try { await navigator.clipboard.writeText(texto()); botao.textContent = "Copiada"; }
   catch { botao.textContent = "Não deu para copiar"; }
-  setTimeout(() => { botao.textContent = "Copiar lista"; }, 1500);
+  setTimeout(() => { botao.textContent = rotulo; }, 1500);
 };
+copiarPeloBotao("copiar-lista", "Copiar lista", () => textoLista);
+copiarPeloBotao("copiar-auctionator", "Copiar para o Auctionator", () => textoAuctionator);
 $("cab-ofertas").onclick = e => aoClicarNaOrdem(e, ordemOfertas, desenharOfertas);
 $("cab-arb").onclick = e => aoClicarNaOrdem(e, ordemArb, filtrarArb);
 let esperaOfertas;
