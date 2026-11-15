@@ -29,7 +29,7 @@ casa_padrao = 114
 
 # Publicação no GitHub Pages (ramo gh-pages). Vazio = não publica.
 # Ex.: "git@github.com:usuario/repositorio.git"
-repositorio_pages = "git@github.com:gabrielbadolato/wow-forever-ah.git"
+repositorio_pages = "git@github.com:gabrielbadolato/goblinomics.git"
 chave_pages = "segredos/pages_deploy_key"
 pasta_pages = ".pages"
 
