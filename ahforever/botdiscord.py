@@ -198,11 +198,37 @@ class Painel(discord.ui.View):
     async def lucro(self, interacao, _):
         await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(), ephemeral=True)
 
+    @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=1)
+    async def ajuda(self, interacao, _):
+        cartao = discord.Embed(title="Como usar o Goblinomics", description=INSTRUCOES, color=DOURADO,
+                               url=self.bot.cfg.url_site or None)
+        await interacao.response.send_message(embed=cartao, ephemeral=True)
+
     async def on_error(self, interacao, erro, item):
         log.exception("erro no painel", exc_info=erro)
         if not interacao.response.is_done():
             await interacao.response.send_message("Não deu para responder agora. Tente de novo em instantes.", ephemeral=True)
 
+
+INSTRUCOES = (
+    "**Botões do painel** (a resposta aparece só para você)\n"
+    "🔎 **Preço**, 🛠️ **Receita** e 👥 **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, "
+    "em português ou inglês, sem se preocupar com acento. Se vários itens baterem, escolha na lista.\n"
+    "📉 **Ofertas** e 💰 **Lucro da guilda** respondem na hora, sem perguntar nada.\n\n"
+    "**Comandos** (a resposta fica à vista de todos no canal)\n"
+    "`/preco`, `/receita` e `/quemfaz`: comece a digitar o item e escolha uma das sugestões.\n\n"
+    "**Como ler os números**\n"
+    "• **Menor preço**: o anúncio mais barato na última foto da casa de leilões.\n"
+    "• **Habitual**: a média do menor preço nos últimos 7 dias. A porcentagem compara o preço de agora com ela.\n"
+    "• **Vendas por dia**: estimativa, pelo que some entre uma foto e outra.\n"
+    "• **Lucro**: venda pelo menor preço menos a taxa de 5%, menos os materiais ao preço de agora.\n"
+    "• **Na guilda**: quem sabe fabricar, lido do jogo duas vezes por dia.\n\n"
+    "**Limites**\n"
+    "• A Blizzard só atualiza os preços de hora em hora; confira no jogo antes de comprar ou vender.\n"
+    "• Os preços são da casa de leilões da Horda, ruleset Normal.\n"
+    "• O bot só consulta: não compra, não vende e não anuncia nada.\n\n"
+    "**No site** há mais: histórico de preço, caminho para subir profissão, lista de compras com exportação "
+    "para o Auctionator e a conta completa das receitas.")
 
 TEXTO_DO_PAINEL = (
     "Preços da casa de leilões, direto do Goblinomics. As respostas aparecem só para você.\n\n"
@@ -210,7 +236,8 @@ TEXTO_DO_PAINEL = (
     "🛠️ **Receita**: custo, lucro e quem da guilda fabrica\n"
     "👥 **Quem faz**: os artesãos da guilda para um item\n"
     "📉 **Ofertas**: itens bem abaixo do preço habitual\n"
-    "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n\n"
+    "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
+    "❓ **Como usar**: instruções e como ler os números\n\n"
     "Para responder à vista de todos, use os comandos `/preco`, `/receita` e `/quemfaz`.")
 
 
@@ -272,8 +299,13 @@ class PainelFixo:
         if mensagem is None:
             mensagem = await canal.send(embed=cartao, view=Painel(self.bot))
             log.info("painel publicado")
-        elif not mensagem.embeds or mensagem.embeds[0].description != cartao.description:
-            mensagem = await mensagem.edit(embed=cartao, view=Painel(self.bot))
+        else:
+            # Reescreve quando muda o texto (foto nova) ou o conjunto de botões (versão nova do bot).
+            esperados = [b.custom_id for b in Painel(self.bot).children]
+            atuais = [getattr(b, "custom_id", None) for linha in mensagem.components for b in getattr(linha, "children", [])]
+            if not mensagem.embeds or mensagem.embeds[0].description != cartao.description or atuais != esperados:
+                mensagem = await mensagem.edit(embed=cartao, view=Painel(self.bot))
+                log.info("painel atualizado")
         if self.estado.get("mensagem") != mensagem.id:
             self.estado.update(canal=canal.id, mensagem=mensagem.id)
             self.guardar()
