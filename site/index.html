@@ -81,6 +81,11 @@ h1::first-letter { font-size: 1.25em; }
 /* Colunas que são conta do site, e não dado do jogo, levam um "~" no cabeçalho. */
 th.est::before { content: "~ "; color: var(--fraco); }
 .nota.real { border-left: 3px solid #4f9a4f; color: #c9c9c9; }
+.padrao { margin-top: 10px; padding-top: 8px; border-top: 1px solid #000; box-shadow: inset 0 1px 0 var(--metal-escuro); font-size: 13px; line-height: 1.5; }
+.padrao small, #bloco-caminho small { color: var(--fraco); }
+#bloco-caminho td.nome img, #bloco-caminho .semicone { width: 22px; height: 22px; }
+#bloco-caminho .pe { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; }
+#cartao-fav td.antes { color: var(--fraco); white-space: nowrap; }
 .selo { margin-left: 8px; font: 11px Arial, sans-serif; color: #ffb347; white-space: nowrap; cursor: help; }
 
 .alerta { flex: none; padding: 6px 14px; text-align: center; font-size: 13px; color: #ffe1b0;
@@ -458,7 +463,9 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <label class="caixa avancado">Sem preço completo <span class="par"><input id="p-incompletas" type="checkbox"> mostrar</span></label>
       <label class="avancado" title="Sua habilidade nesta profissão. A receita ganha a cor do jogo: laranja sempre dá ponto, amarela quase sempre, verde raramente, cinza nunca. O jogo não informa em que nível cada receita é aprendida, então uma laranja pode ainda não estar ao seu alcance.">Minha habilidade <input id="p-skill" type="number" min="1" max="450" placeholder="1–300"></label>
       <label class="caixa avancado">Subir habilidade <span class="par"><input id="p-ponto" type="checkbox"> só as que dão ponto</span></label>
+      <label class="avancado" title="Monta a sequência de receitas mais barata para ir da sua habilidade (campo ao lado) até este valor, com os preços de agora.">Subir até <span class="par"><input id="p-meta" type="number" min="2" max="450" placeholder="ex.: 150" style="width:84px"><button class="acao" type="button" id="p-caminho">Montar caminho</button></span></label>
     </form>
+    <div id="bloco-caminho" data-nt hidden></div>
     <div id="bloco-mat" hidden>
       <h2 class="titulo-bloco">Materiais brutos</h2>
       <p class="nota">Material coletado não tem custo de fabricação: o lucro é o menor preço do leilão menos a taxa da casa (5%; 15% na neutra).
@@ -502,7 +509,8 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h2 class="titulo-bloco">Resumo</h2>
     <p class="nota" id="nota-agora">O que rende mais agora nesta casa, somando fabricar, vender ao NPC, pechinchas e revenda em outra casa do mercado.
       O lucro é o total da quantidade indicada, limitada ao que o mercado vende num dia. É estimativa: confira antes de gastar.</p>
-    <div class="cartoes" style="grid-template-columns: minmax(0, 1fr)"><article class="cartao"><h2>O que fazer agora</h2><table><tbody id="agora"></tbody></table></article></div>
+    <div class="cartoes" style="grid-template-columns: minmax(0, 1fr)"><article class="cartao"><h2>O que fazer agora</h2><table><tbody id="agora"></tbody></table></article>
+      <article class="cartao" id="cartao-fav" data-nt></article></div>
     <h2 class="titulo-bloco">Por profissão</h2>
     <p class="nota" id="nota-resumo"></p>
     <div id="minhas" class="chips"></div>
@@ -630,6 +638,12 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <li><strong>⚠ preço incerto</strong>: o item tem um ou dois anúncios e ainda não tem histórico. Não dá para saber se o preço é normal; essas receitas ficam fora de "O que fazer agora".</li>
     </ul>
     <p>A referência é o histórico do próprio item, não os outros anúncios do momento: é comum a maioria dos anúncios estar cara e o preço de verdade ser o mais barato. Uma alta ou queda real de preço parece absurda nas primeiras horas e é aceita conforme a média acompanha. É uma regra prática, e pode errar.</p>
+    <h3>Caminho de profissão, melhor hora e favoritos</h3>
+    <ul>
+      <li><strong>Caminho mais barato</strong> (aba Profissões, campo "Subir até"): a cada ponto de habilidade, escolhemos a receita com o menor custo de material dividido pela chance de dar ponto. A chance é 100% enquanto a receita é laranja e cai em linha reta da amarela até a cinza. O jogo não informa em que nível a receita é aprendida: supomos uma faixa laranja do tamanho da amarela mais a verde, e por isso cada passo precisa ser conferido.</li>
+      <li><strong>Melhor hora</strong> (no histórico de cada item): em cada dia, comparamos o menor preço de cada hora com a média daquele dia, e tiramos a média entre os dias, suavizada em 3 horas. Precisa de 3 dias completos; por dia da semana, de 14 dias.</li>
+      <li><strong>Favoritos desde a última visita</strong> (aba Resumo): o navegador guarda o preço dos seus favoritos a cada visita e compara com a visita anterior, feita pelo menos 2 horas antes. Só aparecem mudanças de 5% ou mais.</li>
+    </ul>
     <h3>Vendas por dia</h3>
     <p>É uma estimativa. A cada foto nova, comparamos com a anterior e olhamos o que sumiu. Um anúncio some por três motivos, e a API não diz qual:</p>
     <ul>
@@ -690,6 +704,12 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <li><strong>⚠ uncertain price</strong>: the item has one or two listings and no history yet. There is no way to tell whether the price is normal; these recipes are left out of "What to do now".</li>
     </ul>
     <p>The reference is the item's own history, not the other current listings: it is common for most listings to be overpriced and for the real price to be the cheapest one. A real price rise or drop looks absurd for the first hours and is accepted as the average catches up. It is a rule of thumb and can be wrong.</p>
+    <h3>Profession path, best time and favorites</h3>
+    <ul>
+      <li><strong>Cheapest path</strong> (Professions tab, "Level up to" field): at each skill point we pick the recipe with the lowest material cost divided by the chance of a skill-up. The chance is 100% while the recipe is orange and drops in a straight line from yellow to grey. The game does not say at which level a recipe is learned: we assume an orange range as long as the yellow plus green one, so each step needs checking.</li>
+      <li><strong>Best time</strong> (in each item's history): for each day we compare the lowest price at each hour with that day's average, then average across days, smoothed over 3 hours. It needs 3 full days; by weekday, 14 days.</li>
+      <li><strong>Favorites since your last visit</strong> (Summary tab): the browser stores your favorites' prices on each visit and compares them with the previous visit, at least 2 hours earlier. Only changes of 5% or more are shown.</li>
+    </ul>
     <h3>Sales per day</h3>
     <p>This is an estimate. With each new snapshot we compare it with the previous one and look at what disappeared. A listing disappears for three reasons, and the API does not say which:</p>
     <ul>
@@ -753,11 +773,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", 
 
 let meta, catalogo, bonusJogo, grupos = [], filtrados = [];
 // Preferências de quem usa, guardadas só neste navegador.
-const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1};
+const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1, favVisto: {}, favAntes: {}};
 try { Object.assign(prefs, JSON.parse(localStorage.getItem("ah-forever") || "{}")); } catch {}
 // Idioma da interface e dos nomes: o escolhido no botão ou, na primeira visita, o do navegador.
 const LINGUA = prefs.lingua || ((navigator.language || "pt").toLowerCase().startsWith("pt") ? "pt" : "en");
 const EN = LINGUA === "en", LOC = EN ? "en-US" : "pt-BR";
+// Textos montados pelo código nos blocos marcados com data-nt (fora da tradução automática).
+const L = (pt, en) => EN ? en : pt;
 document.documentElement.lang = EN ? "en" : "pt-BR";
 // Tamanho da página (botão "A+"): normal, grande, maior.
 const TAMANHOS = [1, 1.15, 1.3];
@@ -775,6 +797,9 @@ aplicarTamanho();
 // aqui: primeiro a tabela de textos inteiros, depois as frases e os padrões (trechos com números ou nomes).
 // Nomes de itens, tooltips e termos do jogo não passam: já chegam no idioma certo.
 const TEXTOS_EN = {
+  "Subir até": "Level up to", "ex.: 150": "e.g. 150", "Montar caminho": "Build path",
+  "Monta a sequência de receitas mais barata para ir da sua habilidade (campo ao lado) até este valor, com os preços de agora.":
+    "Builds the cheapest sequence of recipes to go from your skill (the field beside this one) to this value, at current prices.",
   "Anúncios reais do jogo": "Actual in-game listings", "Cálculos e estimativas do site": "Site calculations and estimates",
   "Esta aba é a listagem real da casa de leilões, como estava na última coleta: item, menor preço e quantidade vêm direto do jogo, sem conta nenhuma. Só as colunas com til (~) são cálculos do site.":
     "This tab is the actual auction house listing, as it was at the last snapshot: item, lowest price and quantity come straight from the game, with no calculation. Only the columns marked with a tilde (~) are computed by the site.",
@@ -1125,6 +1150,97 @@ async function desenharHistorico(id) {
          ${pontos.some(p => p.vend != null) ? `<div class="rotulo">Vendas estimadas ${pontos.some(p => p.diario) ? "(por dia nos resumos, por coleta nos dias recentes)" : "por coleta"}</div>${barras(pontos)}` : ""}`;
     }
   }
+  if (!erro && pontos.length) desenharPadrao(id).catch(() => {});
+}
+
+// ---- Melhor hora para comprar e vender: preço e vendas por hora do dia e por dia da semana ----
+const DIAS_PARA_HORAS = 3, DIAS_PARA_SEMANA = 14;
+// pontos: [{t, min, vend}] de hora em hora. Devolve o desvio do preço (%) contra a média do próprio dia
+// e as vendas médias por coleta, em cada hora do dia (hora do navegador). null com menos de 3 dias cheios.
+function padraoPorHora(pontos) {
+  const dias = new Map();
+  for (const p of pontos) if (p.min != null) {
+    const dia = new Date(p.t).toDateString();
+    if (!dias.has(dia)) dias.set(dia, []);
+    dias.get(dia).push(p);
+  }
+  const preco = Array.from({length: 24}, () => [0, 0]), vendas = Array.from({length: 24}, () => [0, 0]);
+  let cheios = 0;
+  for (const doDia of dias.values()) {
+    if (doDia.length < 12) continue;
+    cheios++;
+    const media = doDia.reduce((soma, p) => soma + p.min, 0) / doDia.length;
+    for (const p of doDia) { const h = new Date(p.t).getHours(); preco[h][0] += p.min / media; preco[h][1]++; }
+  }
+  if (cheios < DIAS_PARA_HORAS) return null;
+  // A venda vista numa foto aconteceu na hora anterior a ela.
+  for (const p of pontos) if (p.vend != null) { const h = new Date(p.t - 1800e3).getHours(); vendas[h][0] += p.vend; vendas[h][1]++; }
+  const bruto = preco.map(([soma, n]) => n >= 2 ? soma / n : null);
+  // Média móvel de 3 horas (o dia dá a volta), para uma foto isolada não virar "a melhor hora".
+  const suave = bruto.map((v, h) => {
+    const perto = [bruto[(h + 23) % 24], v, bruto[(h + 1) % 24]].filter(x => x != null);
+    return v == null || !perto.length ? null : (perto.reduce((a, b) => a + b, 0) / perto.length - 1) * 100;
+  });
+  return {dias: cheios, preco: suave, vendas: vendas.map(([soma, n]) => n >= 2 ? soma / n : null)};
+}
+// dias: [["2026-11-10", preço médio do dia], ...]. Desvio (%) de cada dia da semana contra a média geral; null com menos de 14 dias.
+function padraoPorDiaDaSemana(dias) {
+  const validos = dias.filter(([, v]) => v != null);
+  if (validos.length < DIAS_PARA_SEMANA) return null;
+  const media = validos.reduce((soma, [, v]) => soma + v, 0) / validos.length;
+  const semana = Array.from({length: 7}, () => [0, 0]);
+  for (const [dia, v] of validos) { const d = new Date(dia + "T12:00:00Z").getUTCDay(); semana[d][0] += v / media; semana[d][1]++; }
+  return semana.map(([soma, n]) => n >= 2 ? (soma / n - 1) * 100 : null);
+}
+const extremos = lista => {
+  const validos = lista.map((v, i) => [v, i]).filter(([v]) => v != null);
+  if (!validos.length) return null;
+  return {min: validos.reduce((a, b) => b[0] < a[0] ? b : a), max: validos.reduce((a, b) => b[0] > a[0] ? b : a)};
+};
+const horaTexto = h => String(h).padStart(2, "0") + "h";
+const sinalPct = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString(LOC, {maximumFractionDigits: 0}) + "%";
+function padraoHtml(horas, semana, diasDeResumo) {
+  let h = `<strong>${L("Melhor hora", "Best time")}</strong> `;
+  if (!horas) return h + `<small>${L(`aparece com ${DIAS_PARA_HORAS} dias completos de coletas deste item.`, `shows up after ${DIAS_PARA_HORAS} full days of snapshots for this item.`)}</small>`;
+  const p = extremos(horas.preco), v = extremos(horas.vendas);
+  h += `<small>${L(`com base em ${horas.dias} dias, no horário deste aparelho`, `based on ${horas.dias} days, in this device's time zone`)}</small>`;
+  if (p) {
+    // Barras do desvio de preço em cada hora: verde abaixo da média do dia, vermelho acima.
+    const largura = 640, altura = 62, meio = 28, passo = (largura - 12) / 24, teto = Math.max(3, ...horas.preco.map(x => Math.abs(x ?? 0)));
+    const barrasHora = horas.preco.map((x, i) => x == null ? "" : `<rect x="${(6 + i * passo + 2).toFixed(1)}" y="${(x >= 0 ? meio - x / teto * 22 : meio).toFixed(1)}" width="${(passo - 4).toFixed(1)}" height="${Math.max(1, Math.abs(x) / teto * 22).toFixed(1)}" fill="${x >= 0 ? "#e0564b" : "#4be04b"}" fill-opacity=".8"><title>${horaTexto(i)}: ${sinalPct(x)}</title></rect>`).join("");
+    h += `<svg viewBox="0 0 ${largura} ${altura}" role="img" aria-label="${L("Preço por hora do dia", "Price by hour of day")}">
+      <line x1="6" x2="${largura - 6}" y1="${meio}" y2="${meio}" stroke="#5a4630"/>${barrasHora}
+      ${[0, 6, 12, 18].map(i => `<text x="${(6 + i * passo + 2).toFixed(1)}" y="${altura - 2}">${horaTexto(i)}</text>`).join("")}
+      <text x="${largura - 6}" y="${altura - 2}" text-anchor="end">${L(`escala ±${Math.round(teto)}%`, `scale ±${Math.round(teto)}%`)}</text></svg>`;
+    h += p.max[0] - p.min[0] < 3
+      ? `<div>${L("O preço quase não muda ao longo do dia.", "The price barely changes during the day.")}</div>`
+      : `<div>${L("Mais barato por volta das", "Cheapest around")} <strong>${horaTexto(p.min[1])}</strong> (${sinalPct(p.min[0])} ${L("contra a média do dia", "vs. the day's average")}) · ${L("mais caro por volta das", "priciest around")} <strong>${horaTexto(p.max[1])}</strong> (${sinalPct(p.max[0])}).</div>`;
+  }
+  if (v && v.max[0] > 0) h += `<div>${L("Vende mais por volta das", "Sells most around")} <strong>${horaTexto(v.max[1])}</strong> (~${porDia(v.max[0])} ${L("por hora", "per hour")}).</div>`;
+  const s = semana && extremos(semana);
+  const nomeDoDia = d => new Date(Date.UTC(2026, 10, 15 + d, 12)).toLocaleDateString(LOC, {weekday: "long", timeZone: "UTC"});
+  h += s && s.max[0] - s.min[0] >= 3
+    ? `<div>${L("Dia mais barato:", "Cheapest day:")} <strong>${nomeDoDia(s.min[1])}</strong> (${sinalPct(s.min[0])}) · ${L("mais caro:", "priciest:")} <strong>${nomeDoDia(s.max[1])}</strong> (${sinalPct(s.max[0])}).</div>`
+    : s ? `<div>${L("O preço quase não muda entre os dias da semana.", "The price barely changes across weekdays.")}</div>`
+    : `<div><small>${L(`Por dia da semana: aparece com ${DIAS_PARA_SEMANA} dias de histórico (há ${diasDeResumo}).`, `By weekday: shows up after ${DIAS_PARA_SEMANA} days of history (${diasDeResumo} so far).`)}</small></div>`;
+  return h + `<div><small>${L("É um padrão do passado, com poucos dias ainda: use como indicação, não como garantia.", "This is a pattern from the past, from few days so far: take it as a hint, not a guarantee.")}</small></div>`;
+}
+async function desenharPadrao(id) {
+  const caixas = [...document.querySelectorAll(`.hist[data-id="${id}"] .padrao`)];
+  if (!caixas.length) return;
+  const casa = casaAtual, base = `dados/hist/${casa.ruleset}-${casa.id}/`;
+  const [dias, resumos] = await Promise.all([
+    Promise.all((casa.horas || []).map(d => baixar(`${base}h-${d}.json`))),
+    Promise.all((casa.meses || []).map(m => baixar(`${base}d-${m}.json`)))]);
+  if (casa !== casaAtual) return;
+  const pontos = [], diarios = [];
+  for (const d of dias) {
+    const s = d.itens[id], vendidos = new Map(d.vendas?.[id] || []);
+    if (s) d.t.forEach((t, i) => { if (s[1][i] != null) pontos.push({t: Date.parse(t), min: s[0][i], vend: d.vendas ? vendidos.get(i) || 0 : null}); });
+  }
+  for (const r of resumos) { const s = r.itens[id]; if (s) r.dias.forEach((dia, i) => diarios.push([dia, s[1][i]])); }
+  const html = padraoHtml(padraoPorHora(pontos), padraoPorDiaDaSemana(diarios), diarios.filter(([, v]) => v != null).length);
+  for (const caixa of document.querySelectorAll(`.hist[data-id="${id}"] .padrao`)) { caixa.innerHTML = html; caixa.hidden = false; }
 }
 
 // O mesmo item em todas as casas coletadas, lado a lado.
@@ -1165,7 +1281,7 @@ function histHtml(id, botoes) {
     `<button type="button" data-periodo="${k}" class="${k === estado.periodo ? "ativo" : ""}">${nome}</button>`).join(" ");
   return `<div class="hist" data-id="${id}">
     <div class="hist-topo"><strong>Histórico</strong><span class="leitura"></span><span class="periodos">${botoes}</span></div>
-    <div class="graficos"><div class="vazio">Carregando…</div></div></div>`;
+    <div class="graficos"><div class="vazio">Carregando…</div></div><div class="padrao" data-nt hidden></div></div>`;
 }
 
 // ---- Variantes: sufixo e atributos calculados a partir do código de bônus ----
@@ -1461,6 +1577,122 @@ function calcularReceitas() {
   }
 }
 
+// ---- Caminho mais barato para subir a habilidade de uma profissão ----
+const caminho = {profId: null, de: null, ate: null, fora: new Set(), trechos: [], aviso: ""};
+// Chance de ganhar ponto, como no jogo: certa enquanto a receita é laranja, cai em linha reta da amarela até a cinza.
+const chanceDePonto = (d, s) => s < d[0] ? 1 : s >= d[1] ? 0 : (d[1] - s) / (d[1] - d[0]);
+// O jogo não informa em que nível a receita é aprendida. Suposição: a faixa laranja tem o tamanho
+// da amarela mais a verde (40/70 → aprende por volta de 10). Por isso cada passo pede conferência.
+const aprendeEm = d => Math.max(1, d[0] - (d[1] - d[0]));
+// Custo de fabricar n vezes, subindo pelos anúncios; falta = não há material à venda para tudo.
+function custoDeFabricar(l, n) {
+  let custo = 0, falta = false;
+  for (const p of l.partes) {
+    const q = p.q * n, g = porItem.get(p.id);
+    if (p.fonte !== "leilão" || !g) custo += p.preco * q;
+    else if (q > g.qtd) { falta = true; custo += p.preco * q; }
+    else custo += custoNoLeilao(g, q);
+  }
+  return {custo: Math.round(custo), falta};
+}
+// A cada ponto, a receita com o menor custo esperado por ponto (custo dividido pela chance de dar ponto).
+function calcularCaminho(profId, de, ate, fora) {
+  const dif = bonusJogo.dificuldades || {};
+  const candidatas = todasReceitas.filter(l => l.profId === profId && l.custo != null && !l.recarga && dif[l.rid] && !fora.has(l.rid));
+  const porPonto = (l, s) => { const c = chanceDePonto(dif[l.rid], s); return s >= aprendeEm(dif[l.rid]) && c > 0 ? l.custo / c : null; };
+  const trechos = [];
+  let atual = null;
+  for (let s = de; s < ate; s++) {
+    let melhor = null, custo = Infinity;
+    for (const l of candidatas) { const c = porPonto(l, s); if (c != null && c < custo) [melhor, custo] = [l, c]; }
+    // Fica na receita atual enquanto ela custar até 5% mais: trocar a cada ponto não ajuda ninguém.
+    const manter = atual?.l && melhor && atual.l !== melhor ? porPonto(atual.l, s) : null;
+    if (manter != null && manter <= custo * 1.05) melhor = atual.l;
+    if (!atual || atual.l !== melhor) trechos.push(atual = {l: melhor, de: s, ate: s + 1, vezes: 0});
+    else atual.ate = s + 1;
+    if (melhor) atual.vezes += 1 / chanceDePonto(dif[melhor.rid], s);
+  }
+  for (const t of trechos) if (t.l) Object.assign(t, {n: Math.ceil(t.vezes)}, custoDeFabricar(t.l, Math.ceil(t.vezes)));
+  return trechos;
+}
+async function montarCaminho() {
+  const de = Math.max(1, Math.round(num("p-skill") ?? 1)), ate = Math.round(num("p-meta") ?? 0);
+  if (caminho.profId !== prof.id) caminho.fora.clear();
+  Object.assign(caminho, {profId: prof.id, de, ate, aviso: "", trechos: []});
+  if (!(ate > de)) caminho.aviso = L(`Informe em "Subir até" um valor maior que a sua habilidade (${de}).`, `Enter in "Level up to" a value above your skill (${de}).`);
+  else { await carregarDegraus(); caminho.trechos = calcularCaminho(prof.id, de, ate, caminho.fora); }
+  desenharCaminho();
+}
+function desenharCaminho() {
+  const caixa = $("bloco-caminho"), nome = receitas.profissoes[caminho.profId] || "";
+  caixa.hidden = caminho.profId !== prof.id;
+  if (caixa.hidden) return;
+  const fechar = `<button class="acao" type="button" data-fechar-caminho>${L("Fechar", "Close")}</button>`;
+  if (caminho.aviso) { caixa.innerHTML = `<div class="pe">${esc(caminho.aviso)} ${fechar}</div>`; return; }
+  const {trechos} = caminho, comReceita = trechos.filter(t => t.l), buracos = trechos.filter(t => !t.l);
+  const total = comReceita.reduce((soma, t) => soma + t.custo, 0);
+  const linhas = trechos.map(t => {
+    if (!t.l) return `<tr><td class="num">${t.de}–${t.ate}</td><td colspan="4"><small>${L("Nenhuma receita com preço para esta faixa: pode ser de treinador com material sem anúncio, ou a profissão sobe de outro jeito aqui.", "No priced recipe for this range: it may need materials with no listings, or the profession levels another way here.")}</small></td></tr>`;
+    const i = infoItem(t.l.item), d = bonusJogo.dificuldades[t.l.rid];
+    return `<tr><td class="num">${t.de}–${t.ate}</td>
+      <td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(t.l.nome)}</span>
+        <span class="variantes">${L("amarela em", "yellow at")} ${d[0]} · ${L("cinza em", "grey at")} ${d[1]}${t.falta ? ` · <span class="selo" style="margin:0">${L("⚠ falta material à venda", "⚠ not enough material listed")}</span>` : ""}</span></span></td>
+      <td class="num">~${t.n.toLocaleString(LOC)} ×</td><td class="num">${moeda(t.custo)}</td>
+      <td><button type="button" class="fav" data-fora="${t.l.rid}" title="${L("Não tenho esta receita: refazer sem ela", "I don't have this recipe: rebuild without it")}" aria-label="${L("Tirar receita", "Remove recipe")}">✕</button></td></tr>`;
+  }).join("");
+  caixa.innerHTML = `<h2 class="titulo-bloco">${L("Caminho mais barato", "Cheapest path")}: ${esc(nome)} ${caminho.de} → ${caminho.ate}</h2>
+    <p class="nota">${L("A cada ponto, a receita com o menor custo esperado por ponto, aos preços de agora. Conta só o material: o que você fabricar e vender abate o custo. O número de vezes é uma média (receita amarela ou verde nem sempre dá ponto). O jogo não informa em que nível cada receita é aprendida nem se ela vem do treinador: confira e use o ✕ nas que você não tem.",
+      "At each point, the recipe with the lowest expected cost per point, at current prices. Only materials are counted: whatever you craft and sell offsets the cost. The number of crafts is an average (yellow or green recipes do not always give a point). The game does not say at which level a recipe is learned or whether it comes from a trainer: check, and use ✕ on the ones you do not have.")}</p>
+    ${comReceita.length ? `<div class="rolagem"><table><thead><tr><th class="num">${L("Habilidade", "Skill")}</th><th>${L("Receita", "Recipe")}</th><th class="num">${L("Vezes", "Crafts")}</th><th class="num">${L("Materiais", "Materials")}</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>` : ""}
+    <div class="pe">${comReceita.length ? `<span>${L("Total de materiais", "Materials total")}: <strong>${moeda(total)}</strong>${buracos.length ? ` <small>${L("(sem as faixas sem receita)", "(excluding ranges with no recipe)")}</small>` : ""}</span>
+      <button class="acao" type="button" data-caminho-lista>${L("Pôr na lista de compras", "Add to shopping list")}</button>` : `<span>${L("Nenhuma receita desta profissão tem preço e dificuldade conhecidos para esta faixa.", "No recipe of this profession has a known price and difficulty for this range.")}</span>`}
+      ${caminho.fora.size ? `<button class="acao" type="button" data-caminho-todas>${L(`Voltar as ${caminho.fora.size} receitas tiradas`, `Restore the ${caminho.fora.size} removed recipes`)}</button>` : ""}${fechar}<span id="caminho-feito"></span></div>`;
+}
+
+// ---- Favoritos: o que mudou desde a última visita ----
+const HORAS_ENTRE_VISITAS = 2;
+// Guarda o preço e a quantidade dos favoritos nesta visita; a visita anterior vira a base de comparação.
+function girarFavoritos(coletadoEm) {
+  const casa = casaAtual.id, visto = prefs.favVisto[casa];
+  const agora = {t: coletadoEm, v: Date.now(), itens: Object.fromEntries(prefs.favoritos.map(id => {
+    const g = porItem.get(id);
+    return [id, g ? [g.min, g.qtd] : [null, 0]];
+  }))};
+  if (!visto) prefs.favVisto[casa] = agora;
+  else if (visto.t !== coletadoEm && Date.now() - visto.v > HORAS_ENTRE_VISITAS * 3600e3) { prefs.favAntes[casa] = visto; prefs.favVisto[casa] = agora; }
+  // Na mesma visita, só entram os favoritos marcados depois.
+  else for (const [id, par] of Object.entries(agora.itens)) visto.itens[id] ??= par;
+  guardarPrefs();
+}
+function desenharFavoritos() {
+  const caixa = $("cartao-fav"), antes = prefs.favAntes[casaAtual.id];
+  const titulo = `<h2>${L("Seus favoritos desde a última visita", "Your favorites since your last visit")}</h2>`;
+  if (!prefs.favoritos.length) { caixa.innerHTML = titulo + `<div class="vazio">${L("Marque itens com ★ na aba Leilões para acompanhá-los aqui.", "Mark items with ★ in the Auctions tab to follow them here.")}</div>`; return; }
+  if (!antes) { caixa.innerHTML = titulo + `<div class="vazio">${L("Na sua próxima visita (daqui a pelo menos 2 horas), aqui aparece o que subiu, caiu ou esgotou.", "On your next visit (at least 2 hours from now), this shows what went up, down or sold out.")}</div>`; return; }
+  const linhas = [];
+  let iguais = 0;
+  for (const id of prefs.favoritos) {
+    const base = antes.itens[id], g = porItem.get(id), i = infoItem(id);
+    if (!base) continue;
+    const [minAntes, qtdAntes] = base, min = g?.min ?? null, qtd = g?.qtd ?? 0;
+    let estado, peso, classe = "";
+    if (minAntes != null && min == null) [estado, peso, classe] = [L("esgotou", "sold out"), 1000, "neg"];
+    else if (minAntes == null && min != null) [estado, peso, classe] = [L("voltou a ter anúncio", "listed again"), 900, "pos"];
+    else if (minAntes != null && min != null && Math.abs(min / minAntes - 1) >= .05) {
+      const v = (min / minAntes - 1) * 100;
+      [estado, peso, classe] = [sinalPct(v), Math.abs(v), v < 0 ? "pos" : "neg"];
+    } else { iguais++; continue; }
+    linhas.push({peso, html: `<tr class="item" data-fav-ir="${id}"><td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(i.nome)}</span>
+      <span class="tipo">${qtdAntes.toLocaleString(LOC)} → ${qtd.toLocaleString(LOC)} ${L("à venda", "listed")}</span></span></td>
+      <td class="num antes">${minAntes == null ? "–" : moeda(minAntes)}</td><td class="num">${min == null ? "–" : moeda(min)}</td>
+      <td class="num ${classe}">${estado}</td></tr>`});
+  }
+  linhas.sort((a, b) => b.peso - a.peso);
+  const quando = new Date(antes.t).toLocaleString(LOC, {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+  caixa.innerHTML = titulo + (linhas.length ? `<table><tbody>${linhas.map(l => l.html).join("")}</tbody></table>` : "")
+    + `<div class="vazio">${L(`Comparado com os preços de ${quando}.`, `Compared with prices from ${quando}.`)} ${iguais ? L(`${iguais} sem mudança relevante (menos de 5%).`, `${iguais} with no relevant change (under 5%).`) : ""}</div>`;
+}
+
 function montarProfissoes() {
   $("p-skill").value = prefs.habilidade[prof.id] ?? "";
   const lucrativas = new Map();
@@ -1558,6 +1790,7 @@ function desenharProf() {
       <table class="reagentes">${materiais}</table>${semHover ? `<div class="atributos" data-id="${l.item}"></div>` : ""}${histHtml(l.item)}</td></tr>`;
   }
   $("linhas-prof").innerHTML = h;
+  $("bloco-caminho").hidden = caminho.profId !== prof.id;
   desenharMateriais();
   $("aviso-prof").hidden = linhasProf.length > 0;
   $("aviso-prof").textContent = "Nenhuma receita com esses filtros.";
@@ -1574,6 +1807,7 @@ function desenharProf() {
 }
 
 function desenharResumo() {
+  desenharFavoritos();
   // Com observação suficiente, o ranking é pelo que rende por dia; antes disso, pelo lucro de uma unidade.
   const porGiro = vendasCasa.horas >= HORAS_PARA_RANQUEAR;
   $("nota-resumo").textContent = porGiro
@@ -2165,6 +2399,8 @@ async function carregarCasa() {
     (meta.addon ? ` · <a href="${esc(meta.addon)}" download title="Mostra estes preços no tooltip dos itens dentro do jogo. Extraia em Interface/AddOns.">Addon para o jogo</a>` : "");
   porItem.clear(); degrausProntos = false;
   for (const g of grupos) porItem.set(g.id, g);
+  girarFavoritos(dados.coletado_em);
+  caminho.profId = null;
   estado.abertos.clear();
   filtrar();
   await mostrarModo();
@@ -2382,6 +2618,25 @@ $("linhas-prof").onclick = e => {
   desenharProf();
 };
 // Cada linha do painel leva à aba onde aquela oportunidade aparece em detalhe.
+$("p-caminho").onclick = () => montarCaminho().catch(falhou);
+$("p-meta").onkeydown = e => { if (e.key === "Enter") montarCaminho().catch(falhou); };
+$("bloco-caminho").onclick = e => {
+  const fora = e.target.closest("[data-fora]");
+  if (fora) { caminho.fora.add(+fora.dataset.fora); montarCaminho().catch(falhou); }
+  else if (e.target.closest("[data-caminho-todas]")) { caminho.fora.clear(); montarCaminho().catch(falhou); }
+  else if (e.target.closest("[data-fechar-caminho]")) { caminho.profId = null; $("bloco-caminho").hidden = true; }
+  else if (e.target.closest("[data-caminho-lista]")) {
+    for (const t of caminho.trechos) if (t.l) prefs.lista[t.l.rid] = t.n;
+    guardarPrefs();
+    $("caminho-feito").textContent = L("Receitas postas na aba Lista.", "Recipes added to the List tab.");
+  }
+};
+$("cartao-fav").onclick = e => {
+  const tr = e.target.closest("tr[data-fav-ir]");
+  if (!tr) return;
+  location.hash = `item=${tr.dataset.favIr}&casa=${casaAtual.id}`;
+  location.reload();
+};
 $("agora").onclick = e => {
   const tr = e.target.closest("tr[data-ir]");
   if (!tr) return;
