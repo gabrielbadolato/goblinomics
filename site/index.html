@@ -233,6 +233,7 @@ td.nome .fav { position: absolute; right: 4px; top: 50%; transform: translateY(-
 #boas-vindas ul { margin: 4px 0 8px; padding-left: 20px; } #boas-vindas strong { color: var(--ouro); }
 .lema button { margin-left: 8px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-style: normal; color: var(--ouro-fosco); text-decoration: underline; }
 .lema button:hover { color: #fff; }
+#sem-rede { margin-left: 8px; font-style: normal; color: #ff6b5e; }
 #metodo { width: min(760px, calc(100vw / var(--z) - 16px)); max-height: calc(100vh / var(--z) - 32px); padding: 0; color: var(--texto); background: var(--janela);
   border: 1px solid #000; border-radius: 6px; box-shadow: 0 0 0 1px #6b6b6b, 0 0 0 3px #242424, 0 20px 60px rgba(0, 0, 0, .9); }
 #metodo::backdrop { background: rgba(0, 0, 0, .7); }
@@ -385,7 +386,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <button type="button" id="tamanho" data-nt title="Tamanho da página / Page size">A+</button>
     <button type="button" id="idioma" data-nt title="Switch to English / Mudar para português">EN</button>
   </div>
-  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button></p>
+  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button><button type="button" id="instalar" data-nt hidden></button><span id="sem-rede" data-nt hidden></span></p>
   <div class="barra-abas">
     <nav id="abas" aria-label="Seções">
       <div class="grupo-abas real"><small>Anúncios reais do jogo</small><div>
@@ -2521,6 +2522,25 @@ function montarSeletorDeCasa(mercados) {
 $("boas-vindas").hidden = prefs.visto;
 $("fechar-boas-vindas").onclick = () => { prefs.visto = true; guardarPrefs(); $("boas-vindas").hidden = true; };
 $("abrir-metodo").onclick = () => $("metodo").showModal();
+// ---- Aplicativo (PWA): sw.js guarda a página e os últimos dados para abrir sem internet ----
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+// O navegador avisa quando dá para instalar (Chrome, Edge, Android); no iPhone é pelo menu Compartilhar.
+let conviteDeInstalar = null;
+addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); conviteDeInstalar = e;
+  $("instalar").textContent = L("Instalar aplicativo", "Install app"); $("instalar").hidden = false;
+});
+$("instalar").onclick = async () => {
+  if (!conviteDeInstalar) return;
+  conviteDeInstalar.prompt(); await conviteDeInstalar.userChoice;
+  conviteDeInstalar = null; $("instalar").hidden = true;
+};
+addEventListener("appinstalled", () => { $("instalar").hidden = true; });
+function mostrarRede() {
+  $("sem-rede").textContent = L("Sem internet: mostrando os últimos dados salvos.", "Offline: showing the last saved data.");
+  $("sem-rede").hidden = navigator.onLine;
+}
+addEventListener("online", mostrarRede); addEventListener("offline", mostrarRede); mostrarRede();
 $("fechar-metodo").onclick = () => $("metodo").close();
 // Clicar fora do painel também fecha.
 $("metodo").onclick = e => { if (e.target === $("metodo")) $("metodo").close(); };
