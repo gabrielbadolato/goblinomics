@@ -252,8 +252,10 @@ td.nome .fav { position: absolute; right: 4px; top: 50%; transform: translateY(-
 #metodo table { min-width: 0; margin: 6px 0; } #metodo td, #metodo th { white-space: normal; padding: 4px 8px; font: 13px Arial, sans-serif; vertical-align: top; }
 html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
 #tamanho { right: 50px !important; }
+#nomes { right: 98px !important; }
+#nomes-m { display: none; }
 #tamanho.ativo { color: var(--ouro); }
-#idioma, #tamanho { position: absolute; right: 10px; top: 5px; cursor: pointer; padding: 2px 8px; border: 1px solid #000; border-radius: 3px; font: 11px var(--titulo);
+#idioma, #tamanho, #nomes { position: absolute; right: 10px; top: 5px; cursor: pointer; padding: 2px 8px; border: 1px solid #000; border-radius: 3px; font: 11px var(--titulo);
   color: var(--ouro-fosco); background: linear-gradient(#3b3b3b, #272727); box-shadow: inset 0 0 0 1px rgba(110, 110, 110, .3); }
 .acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; max-width: 800px; margin-top: 10px; font-size: 13px; color: var(--fraco); }
 .acoes input { width: 74px; }
@@ -325,6 +327,8 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   h1 { font-size: 19px; letter-spacing: 1px; }
   .lema { padding: 4px 10px 5px; font-size: 11.5px; }
   #tamanho { display: none; }
+  #nomes { display: none; }
+  #nomes-m { display: inline; }
   #idioma { position: static; margin-left: auto; padding: 8px 10px; font-size: 12px; }
   .barra-titulo label { margin-left: 0; }
   #atualizado { display: none; }
@@ -391,9 +395,10 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       src="https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt527dd61848a757c7/6aa3316cad92093ee45628fd/camelot-logo-gamepage.png?width=220"></span>
     <h1>Goblinomics</h1>
     <button type="button" id="tamanho" data-nt title="Tamanho da página / Page size">A+</button>
+    <button type="button" id="nomes" data-nt title="Língua dos nomes dos itens / Item name language"></button>
     <button type="button" id="idioma" data-nt title="Switch to English / Mudar para português">EN</button>
   </div>
-  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button><button type="button" id="instalar" data-nt hidden></button><span id="sem-rede" data-nt hidden></span></p>
+  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button><button type="button" id="nomes-m" data-nt title="Língua dos nomes dos itens / Item name language"></button><button type="button" id="instalar" data-nt hidden></button><span id="sem-rede" data-nt hidden></span></p>
   <div class="barra-abas">
     <nav id="abas" aria-label="Seções">
       <div class="grupo-abas real"><small>Anúncios reais do jogo</small><div>
@@ -786,11 +791,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", 
 
 let meta, catalogo, bonusJogo, grupos = [], filtrados = [];
 // Preferências de quem usa, guardadas só neste navegador.
-const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1, favVisto: {}, favAntes: {}, guilda: ""};
+const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1, favVisto: {}, favAntes: {}, guilda: "", nomes: null};
 try { Object.assign(prefs, JSON.parse(localStorage.getItem("ah-forever") || "{}")); } catch {}
 // Idioma da interface e dos nomes: o escolhido no botão ou, na primeira visita, o do navegador.
 const LINGUA = prefs.lingua || ((navigator.language || "pt").toLowerCase().startsWith("pt") ? "pt" : "en");
 const EN = LINGUA === "en", LOC = EN ? "en-US" : "pt-BR";
+// Os nomes dos itens (e das receitas) têm língua própria: prefs.nomes, ou a da interface enquanto não escolhida.
+const NOMES_PT = (prefs.nomes || LINGUA) === "pt";
 // Textos montados pelo código nos blocos marcados com data-nt (fora da tradução automática).
 const L = (pt, en) => EN ? en : pt;
 document.documentElement.lang = EN ? "en" : "pt-BR";
@@ -1672,7 +1679,7 @@ function calcularReceitas() {
     // Por dia, fabrica-se o que o mercado absorve, limitado pela recarga da receita.
     const horas = recarga(rid), vezes = g && g.vdia != null ? Math.min(g.vdia / feitos, horas ? 24 / horas : Infinity) : null;
     // Com os nomes em português, a receita leva o nome do item que produz.
-    const exibido = !EN && catalogo.itens[item]?.[10] ? catalogo.itens[item][0] : nome;
+    const exibido = NOMES_PT && catalogo.itens[item]?.[10] ? catalogo.itens[item][0] : nome;
     return {rid, recarga: horas, profId, categoria: categoria || "", nome: exibido, busca: (exibido + " " + nome).toLowerCase(), item, feitos, partes,
       custo: completo ? custo : null, bruto, lucro, margem: lucro != null && custo > 0 ? lucro / custo * 100 : null,
       qtd: g ? g.qtd : 0, vdia: g ? g.vdia : null, verro: g ? g.verro : null, suspeito: g ? g.suspeito : null,
@@ -2157,7 +2164,7 @@ function desenharCarteira() {
 
 // Preferências num código de texto, para levar de um aparelho a outro sem conta nem servidor.
 const MARCA_DO_CODIGO = "GBX1:";
-const CAMPOS_DO_CODIGO = ["profissoes", "favoritos", "lista", "habilidade", "carteira", "vendidos", "casaPadrao", "lingua"];
+const CAMPOS_DO_CODIGO = ["profissoes", "favoritos", "lista", "habilidade", "carteira", "vendidos", "casaPadrao", "lingua", "nomes"];
 function codigoDasPrefs() {
   const dados = Object.fromEntries(CAMPOS_DO_CODIGO.map(c => [c, prefs[c]]));
   return MARCA_DO_CODIGO + btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
@@ -2521,9 +2528,12 @@ async function iniciar() {
     json("dados/bonus.json").catch(() => ({bonus: {}, pontos: {}}))]);
   // Nomes em português: troca o nome no catálogo e guarda o inglês na posição 10, para a busca aceitar os dois.
   $("idioma").textContent = EN ? "PT" : "EN";
-  if (!EN) {
-    const pt = await json("dados/nomes-pt.json").catch(() => ({}));
+  // No celular o botão do topo não cabe; lá a mesma troca fica ao lado de "Como calculamos".
+  $("nomes").textContent = $("nomes-m").textContent = L("Itens", "Items") + ": " + (NOMES_PT ? "PT" : "EN");
+  const pt = !EN || NOMES_PT ? await json("dados/nomes-pt.json").catch(() => ({})) : {};
+  if (NOMES_PT)
     for (const [id, nome] of Object.entries(pt.itens || {})) { const i = catalogo.itens[id]; if (i) { i[10] = i[0]; i[0] = nome; } }
+  if (!EN) {
     // Categorias e subcategorias no idioma da página; armas de uma e de duas mãos têm o mesmo nome na API.
     for (const [id, c] of Object.entries(pt.classes || {})) {
       const classe = catalogo.classes[id];
@@ -2554,6 +2564,7 @@ $("tamanho").onclick = () => {
   prefs.tamanho = TAMANHOS[(TAMANHOS.indexOf(prefs.tamanho) + 1) % TAMANHOS.length];
   guardarPrefs(); aplicarTamanho();
 };
+$("nomes").onclick = $("nomes-m").onclick = () => { prefs.nomes = NOMES_PT ? "en" : "pt"; guardarPrefs(); location.reload(); };
 $("idioma").onclick = () => { prefs.lingua = EN ? "pt" : "en"; guardarPrefs(); location.reload(); };
 // A casa padrão é escolha de quem usa, guardada neste navegador: a página sempre abre nela.
 // Sem escolha, vale a do servidor (casa_padrao do config.toml). A última opção do seletor marca a casa atual.
