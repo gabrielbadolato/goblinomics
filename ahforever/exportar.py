@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
-from . import addon, banco, bonus, catalogo, compactar, habitual
+from . import addon, banco, bonus, catalogo, compactar, guilda, habitual
 from .compactar import DIAS_POR_HORA, SERIE
 
 
@@ -313,6 +313,11 @@ def exportar(cfg):
     _gravar(destino / "receitas.json", _receitas(con))
     if bonus.caminho(cfg).exists():
         _gravar(destino / "bonus.json", json.loads(bonus.caminho(cfg).read_text()))
+    guildas = json.loads(guilda.caminho(cfg).read_text()) if guilda.caminho(cfg).exists() else []
+    if guildas:
+        _gravar(destino / "guildas.json", guildas)
+    else:
+        (destino / "guildas.json").unlink(missing_ok=True)
 
     casas, vistas, zip_do_addon = [], {}, None
     for ruleset_id, casa_id, nome in con.execute(
@@ -344,6 +349,7 @@ def exportar(cfg):
         "casa_padrao": cfg.casa_padrao,
         "addon": zip_do_addon,
         "partes_tooltips": PARTES_TOOLTIPS,
+        "guildas": bool(guildas),
         "casas": casas,
     })
     marcar_checagem(cfg, agora)

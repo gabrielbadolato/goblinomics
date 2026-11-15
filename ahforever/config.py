@@ -22,6 +22,8 @@ class Config:
     pasta_pages: Path | None = None
     alertas: Path | None = None
     webhook_discord: Path | None = None
+    guildas: tuple = ()
+    sobrenome_na_guilda: bool = False
 
 
 def carregar(caminho=None):
@@ -45,6 +47,8 @@ def carregar(caminho=None):
         pasta_pages=base / bruto.get("pasta_pages", ".pages"),
         alertas=base / bruto.get("alertas", "alertas.toml"),
         webhook_discord=base / bruto.get("webhook_discord", "segredos/discord_webhook"),
+        guildas=list(bruto.get("guildas", [])),
+        sobrenome_na_guilda=bool(bruto.get("sobrenome_na_guilda", False)),
     )
 
 

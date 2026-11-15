@@ -167,6 +167,7 @@ td.nome:has(.fav) { padding-right: 38px; }
 td.nome img, .semicone { float: left; margin-right: 8px; width: 24px; height: 24px; background: #000; border: 1px solid #000; border-radius: 3px;
   box-shadow: 0 0 0 1px #6b6b6b; }
 .variantes { font: 11px Arial, sans-serif; color: var(--fraco); }
+.variantes.guilda { color: #4be04b; }
 td.nome .variantes { margin-left: 8px; }
 tr.variante td { background: #0c0c0c; font-size: 13px; }
 td.vnome { white-space: normal; padding-left: 42px; }
@@ -456,6 +457,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   <section class="painel" id="v-prof" hidden>
     <form id="filtros-prof" onsubmit="return false">
       <label>Receita <input id="p-nome" type="search" placeholder="Buscar receita" autocomplete="off"></label>
+      <label id="rot-guilda" hidden>Guilda <select id="p-guilda" data-nt></select></label>
       <button class="acao mais-filtros" type="button" aria-expanded="false">Filtros</button>
       <label class="avancado">Lucro mínimo (ouro) <input id="p-lucro" type="number" step="any" style="width:86px"></label>
       <label class="avancado">Mín. à venda <input id="p-qtd" type="number" min="0" value="1"></label>
@@ -641,6 +643,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Caminho de profissão, melhor hora e favoritos</h3>
     <ul>
       <li><strong>Caminho mais barato</strong> (aba Profissões, campo "Subir até"): a cada ponto de habilidade, escolhemos a receita com o menor custo de material dividido pela chance de dar ponto. A chance é 100% enquanto a receita é laranja e cai em linha reta da amarela até a cinza. O jogo não informa em que nível a receita é aprendida: supomos uma faixa laranja do tamanho da amarela mais a verde, e por isso cada passo precisa ser conferido.</li>
+      <li><strong>Guilda</strong> (aba Profissões, campo "Guilda"): duas vezes por dia lemos da Blizzard os membros da guilda, a habilidade de cada um nas profissões e as receitas que conhecem. Personagens de nível muito baixo não aparecem na consulta. Escolhendo um personagem, a lista mostra só as receitas dele e usa a habilidade dele.</li>
       <li><strong>Melhor hora</strong> (no histórico de cada item): em cada dia, comparamos o menor preço de cada hora com a média daquele dia, e tiramos a média entre os dias, suavizada em 3 horas. Precisa de 3 dias completos; por dia da semana, de 14 dias.</li>
       <li><strong>Favoritos desde a última visita</strong> (aba Resumo): o navegador guarda o preço dos seus favoritos a cada visita e compara com a visita anterior, feita pelo menos 2 horas antes. Só aparecem mudanças de 5% ou mais.</li>
     </ul>
@@ -707,6 +710,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Profession path, best time and favorites</h3>
     <ul>
       <li><strong>Cheapest path</strong> (Professions tab, "Level up to" field): at each skill point we pick the recipe with the lowest material cost divided by the chance of a skill-up. The chance is 100% while the recipe is orange and drops in a straight line from yellow to grey. The game does not say at which level a recipe is learned: we assume an orange range as long as the yellow plus green one, so each step needs checking.</li>
+      <li><strong>Guild</strong> (Professions tab, "Guild" field): twice a day we read from Blizzard the guild members, each one's profession skill and the recipes they know. Very low level characters do not show up. Picking a character shows only their recipes and uses their skill.</li>
       <li><strong>Best time</strong> (in each item's history): for each day we compare the lowest price at each hour with that day's average, then average across days, smoothed over 3 hours. It needs 3 full days; by weekday, 14 days.</li>
       <li><strong>Favorites since your last visit</strong> (Summary tab): the browser stores your favorites' prices on each visit and compares them with the previous visit, at least 2 hours earlier. Only changes of 5% or more are shown.</li>
     </ul>
@@ -773,7 +777,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", 
 
 let meta, catalogo, bonusJogo, grupos = [], filtrados = [];
 // Preferências de quem usa, guardadas só neste navegador.
-const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1, favVisto: {}, favAntes: {}};
+const prefs = {profissoes: [], favoritos: [], lista: {}, habilidade: {}, modo: null, casa: null, carteira: [], vendidos: [], lingua: null, casaPadrao: null, visto: false, tamanho: 1, favVisto: {}, favAntes: {}, guilda: ""};
 try { Object.assign(prefs, JSON.parse(localStorage.getItem("ah-forever") || "{}")); } catch {}
 // Idioma da interface e dos nomes: o escolhido no botão ou, na primeira visita, o do navegador.
 const LINGUA = prefs.lingua || ((navigator.language || "pt").toLowerCase().startsWith("pt") ? "pt" : "en");
@@ -819,7 +823,7 @@ const TEXTOS_EN = {
   "Atributo ou sufixo": "Stat or suffix", "ex.: of the Monkey": "e.g. of the Monkey", "Preço máx. (ouro)": "Max price (gold)",
   "Limpar": "Clear", "Preço (un.)": "Price (each)", "Nível": "Level", "Disponível": "Available", "7 dias": "7 days",
   "Vendas/dia": "Sales/day", "Mercado (un.)": "Market (each)", "Carregando…": "Loading…", "Anterior": "Previous", "Próxima": "Next",
-  "Receita": "Recipe", "Buscar receita": "Search recipe", "Lucro mínimo (ouro)": "Min profit (gold)", "Mín. à venda": "Min listed",
+  "Receita": "Recipe", "Guilda": "Guild", "Buscar receita": "Search recipe", "Lucro mínimo (ouro)": "Min profit (gold)", "Mín. à venda": "Min listed",
   "Materiais intermediários": "Intermediate materials", "fabricar se compensar": "craft when cheaper",
   "Sem preço completo": "Missing prices", "mostrar": "show", "Minha habilidade": "My skill", "Subir habilidade": "Skill up",
   "só as que dão ponto": "only ones that give points", "Materiais brutos": "Raw materials", "Menor preço (un.)": "Lowest price (each)",
@@ -1399,6 +1403,61 @@ async function carregarReceitas() {
   }
   return receitas;
 }
+// ---- Guilda: quem fabrica o quê (dados/guildas.json, lido da API de perfis a cada 12 h) ----
+// prefs.guilda: "" = todas as receitas, "g:slug" = o que a guilda fabrica, "n:slug" = o que ninguém
+// sabe, "m:slug:nome" = só as receitas de um personagem (e a habilidade dele vale no lugar da digitada).
+let guildas = null;
+async function carregarGuildas() {
+  if (guildas) return;
+  guildas = meta.guildas ? await json("dados/guildas.json").catch(() => []) : [];
+  for (const g of guildas) {
+    g.quem = new Map();
+    for (const m of g.membros) {
+      m.conhece = new Set(m.receitas);
+      for (const rid of m.receitas) g.quem.set(rid, [...(g.quem.get(rid) || []), m.nome]);
+    }
+  }
+}
+const escolhaDeGuilda = () => { const [tipo, slug, ...nome] = (prefs.guilda || "").split(":"); return {tipo, slug, nome: nome.join(":")}; };
+const guildaAtiva = () => guildas?.find(g => g.slug === escolhaDeGuilda().slug) || guildas?.[0];
+const membroAtivo = () => { const e = escolhaDeGuilda(); return e.tipo === "m" ? guildaAtiva()?.membros.find(m => m.nome === e.nome) : undefined; };
+const pontosDe = (m, profId) => m?.profissoes.find(p => p[0] === profId)?.[1];
+const habilidadeAtual = profId => pontosDe(membroAtivo(), profId) ?? prefs.habilidade[profId];
+const fabricantes = rid => guildaAtiva()?.quem.get(rid) || [];
+function passaGuilda(l) {
+  const {tipo} = escolhaDeGuilda(), m = membroAtivo();
+  if (!tipo || !guildaAtiva()) return true;
+  if (tipo === "m") return !m || m.conhece.has(l.rid);
+  return (fabricantes(l.rid).length > 0) === (tipo === "g");
+}
+function seloGuilda(rid) {
+  const nomes = fabricantes(rid);
+  if (!nomes.length) return "";
+  const texto = nomes.slice(0, 3).join(", ") + (nomes.length > 3 ? ` +${nomes.length - 3}` : "");
+  return `<span class="variantes guilda" data-nt title="${esc(L("Quem da guilda sabe fazer", "Guild members who can craft it") + ": " + nomes.join(", "))}">${L("guilda", "guild")}: ${esc(texto)}</span>`;
+}
+function montarGuilda() {
+  const caixa = $("p-guilda");
+  $("rot-guilda").hidden = !guildas?.length;
+  if (!guildas?.length) return;
+  let h = `<option value="">${L("Todas as receitas", "All recipes")}</option>`;
+  for (const g of guildas) {
+    h += `<optgroup label="${esc(g.nome)}"><option value="g:${esc(g.slug)}">${L("O que a guilda fabrica", "What the guild can craft")}</option>
+      <option value="n:${esc(g.slug)}">${L("O que ninguém sabe ainda", "What nobody knows yet")}</option>`;
+    for (const m of g.membros) {
+      const pontos = pontosDe(m, prof.id);
+      h += `<option value="m:${esc(g.slug)}:${esc(m.nome)}">${esc(m.nome)}${pontos ? ` (${pontos})` : ""}</option>`;
+    }
+    h += "</optgroup>";
+  }
+  caixa.innerHTML = h;
+  caixa.value = prefs.guilda || "";
+  // A escolha guardada pode ser de um personagem que saiu da guilda.
+  if (caixa.selectedIndex < 0) { caixa.value = ""; prefs.guilda = ""; }
+  const lido = new Date(guildaAtiva().lido_em).toLocaleString(LOC, {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
+  caixa.title = L(`Profissões e receitas lidas do jogo em ${lido}. O número é a habilidade do personagem nesta profissão.`,
+    `Professions and recipes read from the game on ${lido}. The number is the character's skill in this profession.`);
+}
 const porItem = new Map();
 const prof = {id: null, ordem: "lucro", sentido: -1, abertos: new Set(), materiaisAbertos: new Set()};
 // Subcategorias de Trade Goods que cada profissão coleta; ids negativos são listas só de materiais.
@@ -1694,7 +1753,10 @@ function desenharFavoritos() {
 }
 
 function montarProfissoes() {
-  $("p-skill").value = prefs.habilidade[prof.id] ?? "";
+  montarGuilda();
+  $("p-skill").value = habilidadeAtual(prof.id) ?? "";
+  // Com um personagem da guilda escolhido, vale a habilidade lida do jogo.
+  $("p-skill").readOnly = pontosDe(membroAtivo(), prof.id) != null;
   const lucrativas = new Map();
   for (const l of todasReceitas) if (l.lucro > 0) lucrativas.set(l.profId, (lucrativas.get(l.profId) || 0) + 1);
   $("categorias").innerHTML = Object.entries(receitas.profissoes).sort((a, b) => a[1].localeCompare(b[1])).map(([id, nome]) =>
@@ -1733,8 +1795,8 @@ function desenharMateriais() {
 
 function filtrarProf() {
   const nome = $("p-nome").value.trim().toLowerCase(), lucroMin = num("p-lucro"), qtdMin = num("p-qtd") ?? 0;
-  const incompletas = $("p-incompletas").checked, habilidade = prefs.habilidade[prof.id], soPonto = $("p-ponto").checked && habilidade;
-  linhasProf = todasReceitas.filter(l => l.profId === prof.id &&
+  const incompletas = $("p-incompletas").checked, habilidade = habilidadeAtual(prof.id), soPonto = $("p-ponto").checked && habilidade;
+  linhasProf = todasReceitas.filter(l => l.profId === prof.id && passaGuilda(l) &&
     (!soPonto || (dificuldade(l.rid, habilidade) ?? 3) < 3) &&
     (!nome || l.busca.includes(nome)) &&
     (incompletas || l.lucro != null) &&
@@ -1760,11 +1822,11 @@ function desenharProf() {
   let h = "";
   for (const l of linhasProf) {
     const i = infoItem(l.item), aberto = prof.abertos.has(l.rid), sinal = l.lucro == null ? "" : l.lucro >= 0 ? "pos" : "neg";
-    const dif = dificuldade(l.rid, prefs.habilidade[prof.id]), faixa = bonusJogo.dificuldades?.[l.rid];
+    const dif = dificuldade(l.rid, habilidadeAtual(prof.id)), faixa = bonusJogo.dificuldades?.[l.rid];
     const margem = l.margem == null ? "–" : Math.round(l.margem).toLocaleString(LOC) + "%";
     h += `<tr class="item abre" data-id="${l.item}" data-rid="${l.rid}" aria-expanded="${aberto}">
       <td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(l.nome)}</span>
-        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}${selo(l, ["alto", "incerto"])}
+        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}${selo(l, ["alto", "incerto"])}${seloGuilda(l.rid)}
         ${dif != null ? `<span class="variantes dif-${dif}" title="Fica amarela com ${faixa[0]} de habilidade e cinza com ${faixa[1]}">${CORES_DIF[dif]}</span>` : ""}
         ${l.recarga ? `<span class="variantes" title="Só dá para fabricar uma vez a cada ${textoRecarga(l.recarga)}">recarga ${textoRecarga(l.recarga)}</span>` : ""}
         <span class="sm">${esc(l.categoria)}${margem === "–" ? "" : ` · margem ${margem}`}${l.vdia != null ? ` · vende ~${porDia(l.vdia)}/dia${textoMargem(l.verro)}` : ""}</span></span><button type="button" class="fav mais ${prefs.lista[l.rid] ? "ativo" : ""}" data-lista="${l.rid}" title="${prefs.lista[l.rid] ? "Tirar da lista de compras" : "Pôr na lista de compras"}" aria-label="Lista de compras" aria-pressed="${!!prefs.lista[l.rid]}">${prefs.lista[l.rid] ? "✓" : "＋"}</button></td>
@@ -1851,7 +1913,7 @@ async function abrirResumo() {
 
 async function abrirProfissoes() {
   $("aviso-prof").hidden = false; $("aviso-prof").textContent = "Carregando…";
-  [receitas] = await Promise.all([carregarReceitas(), carregarDegraus()]);
+  [receitas] = await Promise.all([carregarReceitas(), carregarDegraus(), carregarGuildas()]);
   prof.id ??= +Object.entries(receitas.profissoes).sort((a, b) => a[1].localeCompare(b[1]))[0][0];
   calcularReceitas(); montarProfissoes(); filtrarProf();
 }
@@ -2591,7 +2653,8 @@ $("filtros-ofertas").oninput = () => { clearTimeout(esperaOfertas); esperaOferta
 let esperaArb;
 $("filtros-arb").oninput = () => { clearTimeout(esperaArb); esperaArb = setTimeout(filtrarArb, 120); };
 let esperaProf;
-$("p-skill").oninput = () => { const v = num("p-skill"); v ? prefs.habilidade[prof.id] = v : delete prefs.habilidade[prof.id]; guardarPrefs(); };
+$("p-guilda").onchange = () => { prefs.guilda = $("p-guilda").value; guardarPrefs(); montarProfissoes(); filtrarProf(); };
+$("p-skill").oninput = () => { if ($("p-skill").readOnly) return; const v = num("p-skill"); v ? prefs.habilidade[prof.id] = v : delete prefs.habilidade[prof.id]; guardarPrefs(); };
 $("p-cadeia").onchange = () => { calcularReceitas(); montarProfissoes(); filtrarProf(); };
 $("filtros-prof").oninput = () => { clearTimeout(esperaProf); esperaProf = setTimeout(filtrarProf, 120); };
 $("cab-prof").onclick = e => {

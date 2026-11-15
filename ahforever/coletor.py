@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
-from . import alertas, banco, bonus, catalogo, config, exportar, habitual, publicar, receitas, vendas, wowhead
+from . import alertas, banco, bonus, catalogo, config, exportar, guilda, habitual, publicar, receitas, vendas, wowhead
 from .api import ClienteBlizzard, ErroAPI
 from .resumo import resumir
 
@@ -139,7 +139,7 @@ def sondar(cfg, api):
 
 def main():
     parser = argparse.ArgumentParser(description="Monitor da casa de leilões do WoW: Forever")
-    parser.add_argument("comando", choices=["coletar", "catalogar", "receitas", "bonus", "exportar", "publicar", "sondar"])
+    parser.add_argument("comando", choices=["coletar", "catalogar", "receitas", "bonus", "guilda", "exportar", "publicar", "sondar"])
     parser.add_argument("--config", help="caminho do config.toml")
     args = parser.parse_args()
 
@@ -170,6 +170,11 @@ def main():
         if args.comando != "coletar":
             raise SystemExit(f"catálogo: {e}")
         print(f"catálogo: adiado para a próxima rodada ({e})")
+    # A guilda é um extra: se a consulta falhar, a página segue com a última leitura.
+    try:
+        guilda.atualizar(cfg, api, forcar=args.comando == "guilda")
+    except Exception as e:
+        print(f"guilda: adiada para a próxima rodada ({e})")
     exportar.exportar(cfg)
     publicar.publicar(cfg)
     # Um defeito nos alertas (regra mal escrita, Discord fora do ar) não pode derrubar a coleta.

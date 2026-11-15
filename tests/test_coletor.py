@@ -6,7 +6,7 @@ from pathlib import Path
 
 import zipfile
 
-from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, exportar, habitual, receitas, vendas, wowhead
+from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, exportar, guilda, habitual, receitas, vendas, wowhead
 from ahforever.api import Resposta
 from ahforever.config import Config
 from ahforever.resumo import chave_variante, resumir
@@ -376,6 +376,25 @@ class TesteColetor(unittest.TestCase):
         # Menor preço entre as variantes, mercado dele, total à venda e vendas por dia; só lance fica de fora.
         self.assertIn("[720]={4000,4100,3,12},", dados)
         self.assertNotIn("[9]=", dados)
+
+    def test_guilda_lista_quem_tem_profissao_sem_sobrenome(self):
+        ns = "profile-forever-us"
+        api = ApiFalsa({
+            ("/data/wow/guild/rusty-joints", ns): {"name": "Rusty Joints", "faction": {"type": "HORDE"}, "ruleset": {"id": 2}},
+            ("/data/wow/guild/rusty-joints/roster", ns): {"members": [
+                {"character": {"name": "Glom", "surname": "Gazingo", "slug": "glom-gazingo", "level": 38}},
+                {"character": {"name": "Novato", "slug": "novato-x", "level": 1}}]},
+            ("/profile/wow/character/glom-gazingo/professions", ns): {
+                "primaries": [{"profession": {"id": 171}, "tiers": [
+                    {"skill_points": 225, "known_recipes": [{"id": 2907}, {"id": 1814}]}]}],
+                "secondaries": [{"profession": {"id": 185}, "tiers": [{"skill_points": 4}]}]},
+        })
+        g = guilda.ler(api, "rusty-joints")
+        # O personagem sem página de profissões (404) fica de fora; o sobrenome não vai para o site.
+        self.assertEqual(g["membros"], [{"nome": "Glom", "nivel": 38, "profissoes": [[171, 225], [185, 4]],
+                                         "receitas": [1814, 2907]}])
+        self.assertEqual((g["nome"], g["faccao"], g["ruleset"]), ("Rusty Joints", "HORDE", 2))
+        self.assertIsNone(guilda.ler(api, "nao-existe"))
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [
