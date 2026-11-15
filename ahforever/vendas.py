@@ -1,3 +1,4 @@
+from .habitual import absurdo
 from .resumo import chave_variante, preco_unitario, resumir
 
 # A API mostra anúncios, não vendas. A estimativa compara duas fotos seguidas:
@@ -15,8 +16,13 @@ def _chave(anuncio):
     return (int(item["id"]), chave_variante(item)) if "id" in item else None
 
 
-def estimar(antes, depois, commodities):
-    """Vendas estimadas entre duas fotos: {(item_id, variante): [quantidade, valor em cobre]}."""
+def estimar(antes, depois, commodities, habituais=None):
+    """Vendas estimadas entre duas fotos: {(item_id, variante): [quantidade, valor em cobre]}.
+
+    habituais ({item: cobre}, ver habitual.py): anúncio que some custando muito mais que o
+    habitual do item é tratado como cancelado, não como vendido.
+    """
+    habituais = habituais or {}
     atuais = {a["id"]: a for a in depois}
     mercado = {chave: r.preco_mercado for chave, r in resumir(antes).items()}
 
@@ -40,6 +46,8 @@ def estimar(antes, depois, commodities):
             # Compra parcial de uma pilha de commodity.
             vendido = antes_qtd - int(agora.get("quantity", 1)) if commodities else 0
         elif a.get("time_left") in PODE_TER_EXPIRADO:
+            continue
+        elif absurdo(preco, habituais.get(chave[0])):
             continue
         elif commodities and chave in sobrevivente and preco > sobrevivente[chave]:
             continue

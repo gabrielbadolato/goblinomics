@@ -6,7 +6,7 @@ from pathlib import Path
 
 import zipfile
 
-from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, exportar, receitas, vendas, wowhead
+from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, exportar, habitual, receitas, vendas, wowhead
 from ahforever.api import Resposta
 from ahforever.config import Config
 from ahforever.resumo import chave_variante, resumir
@@ -312,6 +312,33 @@ class TesteColetor(unittest.TestCase):
         # A 1 foi comprada inteira e a 2 em parte. A 3 continua, então a 4 (mais cara) saiu por cancelamento.
         depois = [pilha(2, 11, 25), pilha(3, 12, 30)]
         self.assertEqual(vendas.estimar(antes, depois, commodities=True), {(2589, ""): [65, 50 * 10 + 15 * 11]})
+
+    def test_anuncio_absurdo_que_some_nao_conta_como_venda(self):
+        def anuncio(id, preco):
+            return {"id": id, "item": {"id": 720}, "buyout": preco, "quantity": 1, "time_left": "LONG"}
+        # Anúncio único: sem o histórico, o preço dele é o próprio mercado e a saída contaria como venda.
+        antes = [anuncio(1, 990000)]
+        self.assertEqual(vendas.estimar(antes, [], commodities=False), {(720, ""): [1, 990000]})
+        self.assertEqual(vendas.estimar(antes, [], commodities=False, habituais={720: 5000}), {})
+        self.assertEqual(vendas.estimar([anuncio(1, 20000)], [], commodities=False, habituais={720: 5000}),
+                         {(720, ""): [1, 20000]})
+
+    def test_preco_habitual_ignora_fotos_absurdas(self):
+        con = banco.abrir(self.cfg.banco)
+        self.addCleanup(con.close)
+        agora = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+        # Sete fotos a 100c, uma a 99g e uma a 1c; o item 2 só aparece em três fotos.
+        for n, minimo in enumerate([100, 100, 100, 990000, 100, 1, 100, 100, 100]):
+            con.execute("INSERT INTO coletas (id, ruleset_id, casa_id, tipo, coletado_em, sha256, n_anuncios) "
+                        "VALUES (?, 1, 113, 'itens', ?, 'x', 1)", (100 + n, f"2026-11-10T0{n}:00:00Z"))
+            con.execute("INSERT INTO precos VALUES (?, 1, '', ?, ?, 1, 1)", (100 + n, minimo, minimo))
+            if n < 3:
+                con.execute("INSERT INTO precos VALUES (?, 2, '', 50, 50, 1, 1)", (100 + n,))
+        con.commit()
+        self.assertEqual(habitual.precos(con, 1, 113, agora), {1: 100})
+        self.assertTrue(habitual.absurdo(501, 100))
+        self.assertFalse(habitual.absurdo(500, 100))
+        self.assertFalse(habitual.absurdo(10 ** 9, None))
 
     def test_alerta_avisa_quando_passa_a_valer_e_nao_repete(self):
         coletor.coletar(self.cfg, self.api)

@@ -1,10 +1,11 @@
 import argparse
+import functools
 import gzip
 import json
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
-from . import alertas, banco, bonus, catalogo, config, exportar, publicar, receitas, vendas, wowhead
+from . import alertas, banco, bonus, catalogo, config, exportar, habitual, publicar, receitas, vendas, wowhead
 from .api import ClienteBlizzard, ErroAPI
 from .resumo import resumir
 
@@ -72,7 +73,7 @@ def _guardar_bruto(cfg, ruleset_id, casa_id, tipo, coletado_em, corpo):
         arquivo.unlink()
 
 
-def coletar_casa(api, con, cfg, ruleset_id, casa_id, tipo, agora):
+def coletar_casa(api, con, cfg, ruleset_id, casa_id, tipo, agora, habituais=None):
     """Baixa a foto de uma casa e grava o resumo. Devolve o nº de anúncios ou None se não mudou."""
     last_modified, sha_anterior, coleta_anterior = banco.ultima_coleta(con, ruleset_id, casa_id, tipo)
     r = api.get(_caminho(ruleset_id, casa_id, tipo), desde=last_modified)
@@ -87,7 +88,8 @@ def coletar_casa(api, con, cfg, ruleset_id, casa_id, tipo, agora):
         anteriores = _foto_guardada(cfg, ruleset_id, casa_id, tipo, coleta_anterior)
         if anteriores is not None and 0 < intervalo <= INTERVALO_MAXIMO_VENDAS:
             banco.gravar_vendas(con, coleta_id, intervalo,
-                                vendas.estimar(anteriores, anuncios, tipo == "commodities"))
+                                vendas.estimar(anteriores, anuncios, tipo == "commodities",
+                                               habituais() if habituais else None))
     _guardar_bruto(cfg, ruleset_id, casa_id, tipo, agora, r.corpo)
     return len(anuncios)
 
@@ -101,8 +103,11 @@ def coletar(cfg, api, agora=None):
         for casa_id, nome in listar_casas(api, ruleset_id, cfg.filtro_casas):
             with con:
                 banco.registrar_casa(con, ruleset_id, casa_id, nome)
+            # Calculado só se houver foto nova, e uma vez para os dois tipos da casa.
+            habituais = functools.cache(functools.partial(
+                habitual.precos, con, ruleset_id, casa_id, datetime.strptime(agora, habitual.FORMATO)))
             for tipo in TIPOS:
-                n = coletar_casa(api, con, cfg, ruleset_id, casa_id, tipo, agora)
+                n = coletar_casa(api, con, cfg, ruleset_id, casa_id, tipo, agora, habituais)
                 novas += n is not None
                 estado = "sem mudança" if n is None else f"{n} anúncios"
                 print(f"ruleset {ruleset_id} casa {casa_id} ({nome}) {tipo}: {estado}")

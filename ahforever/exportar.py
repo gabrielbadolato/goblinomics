@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
-from . import addon, banco, bonus, catalogo, compactar
+from . import addon, banco, bonus, catalogo, compactar, habitual
 from .compactar import DIAS_POR_HORA, SERIE
 
 
@@ -172,7 +172,7 @@ def _receitas(con):
     return {"profissoes": profissoes, "receitas": receitas, "npc": npc}
 
 
-def _vendas(con, ruleset_id, casa_id, agora):
+def _vendas(con, ruleset_id, casa_id, agora, habituais):
     """Vendas estimadas dos últimos 7 dias por item, e quantas horas de observação há por trás delas."""
     desde = (agora - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
     casa = (ruleset_id, casa_id, desde)
@@ -184,28 +184,25 @@ def _vendas(con, ruleset_id, casa_id, agora):
         "AND tipo = 'itens' AND intervalo_vendas IS NOT NULL", casa).fetchone()[0]
     itens, valores, quadrados = {}, {}, {}
     # Primeiro o total de cada item em cada foto, depois a soma e a soma dos quadrados entre as fotos.
-    for item_id, quantidade, quadrado, valor in con.execute(
-            "SELECT item_id, SUM(q), SUM(q * q), SUM(valor) FROM ("
-            "  SELECT v.item_id, c.coletado_em, SUM(v.quantidade) AS q, SUM(v.valor) AS valor "
-            "  FROM vendas v JOIN coletas c ON c.id = v.coleta_id "
-            "  WHERE c.ruleset_id = ? AND c.casa_id = ? AND c.coletado_em >= ? GROUP BY 1, 2) GROUP BY 1", casa):
-        itens[item_id], valores[item_id], quadrados[item_id] = quantidade, valor, quadrado
+    # Vendas a preço absurdo, gravadas antes de o coletor passar a descartá-las, ficam de fora.
+    por_foto = {}
+    for item_id, quando, quantidade, valor in con.execute(
+            "SELECT v.item_id, c.coletado_em, v.quantidade, v.valor FROM vendas v "
+            "JOIN coletas c ON c.id = v.coleta_id "
+            "WHERE c.ruleset_id = ? AND c.casa_id = ? AND c.coletado_em >= ?", casa):
+        if quantidade > 0 and habitual.absurdo(valor / quantidade, habituais.get(item_id)):
+            continue
+        total = por_foto.setdefault((item_id, quando), [0, 0])
+        total[0] += quantidade
+        total[1] += valor
+    for (item_id, _), (quantidade, valor) in por_foto.items():
+        itens[item_id] = itens.get(item_id, 0) + quantidade
+        valores[item_id] = valores.get(item_id, 0) + valor
+        quadrados[item_id] = quadrados.get(item_id, 0) + quantidade * quantidade
     # valores: cobre que essas vendas somaram; dividido pela quantidade dá o preço a que o item vende.
     # fotos e quadrados: com eles a página calcula a margem de erro das vendas por dia (variação entre as fotos).
     return {"horas": round(segundos / 3600, 1), "fotos": fotos, "itens": itens, "valores": valores,
             "quadrados": quadrados}
-
-
-# A média só vale com um mínimo de fotos; antes disso um item novo pareceria sempre em promoção.
-FOTOS_PARA_MEDIA = 6
-
-
-def _medias(con, ruleset_id, casa_id, agora):
-    """Média do menor preço de cada item nas fotos dos últimos 7 dias: {item: cobre}."""
-    desde = (agora - timedelta(days=DIAS_POR_HORA)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return dict(con.execute(
-        f"SELECT item_id, CAST(AVG(minimo) AS INTEGER) FROM ({SERIE}) WHERE minimo IS NOT NULL "
-        "GROUP BY item_id HAVING COUNT(*) >= ?", (ruleset_id, casa_id, desde, "9999", FOTOS_PARA_MEDIA)))
 
 
 # Muda quando o formato dos arquivos de histórico muda, para os já gravados serem refeitos.
@@ -327,9 +324,10 @@ def exportar(cfg):
         if not linhas:
             continue
         arquivo = f"casa-{ruleset_id}-{casa_id}.json"
-        vendas = _vendas(con, ruleset_id, casa_id, agora)
+        habituais = habitual.precos(con, ruleset_id, casa_id, agora)
+        vendas = _vendas(con, ruleset_id, casa_id, agora, habituais)
         _gravar(destino / arquivo, {"coletado_em": coletado_em, "linhas": linhas, "vendas": vendas,
-                                    "medias": _medias(con, ruleset_id, casa_id, agora)})
+                                    "medias": habituais})
         if casa_id == cfg.casa_padrao and zip_do_addon is None:
             zip_do_addon = addon.gerar(cfg.pasta_site, f"{nome} {casa_id}", coletado_em, linhas, vendas)
         horas, meses = _historico(con, destino, ruleset_id, casa_id, agora.strftime("%Y-%m-%d"))

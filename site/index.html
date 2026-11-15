@@ -28,7 +28,7 @@ html { scrollbar-color: #5a5a5a #0d0d0d; }
 ::-webkit-scrollbar { width: 13px; height: 13px; }
 ::-webkit-scrollbar-track { background: #0d0d0d; box-shadow: inset 0 0 0 1px #000; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #6a6a6a, #3a3a3a); border: 2px solid #0d0d0d; border-radius: 4px; }
-body { margin: 0; min-height: calc(100vh / var(--z)); padding: 26px 16px 74px; color: var(--texto);
+body { margin: 0; min-height: calc(100vh / var(--z)); padding: 26px 16px 22px; color: var(--texto);
   background: #050607 radial-gradient(ellipse at 50% 0%, #26303a 0%, #10151a 45%, #050607 100%) fixed;
   font: 14px/1.35 Arial, "Helvetica Neue", Helvetica, sans-serif; }
 
@@ -62,17 +62,26 @@ h1::first-letter { font-size: 1.25em; }
 .emblema.com-logo img { display: block; }
 .fa { margin: 0; padding: 4px 10px 8px; text-align: center; }
 
-/* ---- Abas penduradas embaixo da janela, como no jogo ---- */
-.barra-abas { position: absolute; top: calc(100% + 3px); left: 0; right: 0; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 16px; padding: 0 8px 0 26px; }
-#abas { display: flex; gap: 4px; }
-#abas button { font: 13px var(--titulo); color: var(--ouro-fosco); padding: 7px 20px 8px; cursor: pointer; border: 1px solid #000; border-top: 0;
-  border-radius: 0 0 7px 7px; background: linear-gradient(#1f1f1f, #343434); text-shadow: 0 1px 0 #000;
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px rgba(120, 120, 120, .35), 0 3px 6px rgba(0, 0, 0, .5); }
+/* ---- Abas no topo da janela, em dois grupos: o que vem do jogo e o que o site calcula ---- */
+.barra-abas { flex: none; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 16px; padding: 6px 10px 0 14px;
+  background: linear-gradient(#141414, #1d1d1d); border-bottom: 1px solid #000; box-shadow: inset 0 -1px 0 #6b5a1a; }
+#abas { display: flex; align-items: flex-end; gap: 18px; }
+.grupo-abas { display: flex; flex-direction: column; gap: 3px; }
+.grupo-abas small { padding-left: 3px; font: 10px Arial, sans-serif; letter-spacing: .6px; text-transform: uppercase; color: var(--fraco); }
+.grupo-abas.real small { color: #8fd18f; }
+.grupo-abas > div { display: flex; align-items: flex-end; gap: 4px; }
+#abas button { font: 13px var(--titulo); color: var(--ouro-fosco); padding: 7px 20px 6px; cursor: pointer; border: 1px solid #000; border-bottom: 0;
+  border-radius: 7px 7px 0 0; background: linear-gradient(#343434, #1f1f1f); text-shadow: 0 1px 0 #000;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 0 0 1px rgba(120, 120, 120, .35); }
 #abas button:hover { color: #fff; }
-#abas button.ativo { color: #fff; padding-bottom: 11px; background: linear-gradient(#5d4c10, #b3931f 70%, #d8b632);
-  box-shadow: inset 0 -1px 0 rgba(255, 245, 190, .6), inset 0 0 0 1px rgba(255, 220, 90, .55), 0 3px 8px rgba(0, 0, 0, .6); }
-.barra-abas label { flex-direction: row; align-items: center; gap: 8px; margin-left: auto; padding-top: 5px; }
-#atualizado { padding-top: 11px; color: var(--fraco); font-size: 12px; }
+#abas button.ativo { color: #fff; padding-top: 10px; background: linear-gradient(#d8b632, #b3931f 30%, #5d4c10);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 190, .6), inset 0 0 0 1px rgba(255, 220, 90, .55); }
+.barra-abas label { flex-direction: row; align-items: center; gap: 8px; margin-left: auto; padding-bottom: 5px; }
+#atualizado { padding-bottom: 9px; color: var(--fraco); font-size: 12px; }
+/* Colunas que são conta do site, e não dado do jogo, levam um "~" no cabeçalho. */
+th.est::before { content: "~ "; color: var(--fraco); }
+.nota.real { border-left: 3px solid #4f9a4f; color: #c9c9c9; }
+.selo { margin-left: 8px; font: 11px Arial, sans-serif; color: #ffb347; white-space: nowrap; cursor: help; }
 
 .alerta { flex: none; padding: 6px 14px; text-align: center; font-size: 13px; color: #ffe1b0;
   background: linear-gradient(#8a1c12, #560b07); border-bottom: 1px solid #000; box-shadow: inset 0 1px 0 rgba(255, 170, 150, .35); }
@@ -289,10 +298,13 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   .emblema { left: 4px; top: -10px; width: 46px; height: 46px; }
   .emblema.com-logo { left: -4px; top: -12px; width: 70px; height: 57px; }
   /* As abas viram a barra fixa do rodapé, com a escolha da casa ao lado. */
-  .barra-abas { position: fixed; z-index: 5; top: auto; bottom: 0; flex-wrap: nowrap; align-items: center; gap: 6px; padding: 14px 6px 6px;
-    background: linear-gradient(transparent, #050607 35%); }
-  #abas { gap: 3px; flex: 1; min-width: 0; }
-  #abas button, #abas button.ativo { flex: 1 1 auto; min-width: 0; white-space: nowrap; border-top: 1px solid #000; border-radius: 6px; padding: 12px 2px; font-size: 12px; }
+  .barra-abas { position: fixed; z-index: 5; left: 0; right: 0; top: auto; bottom: 0; flex-wrap: nowrap; align-items: center; gap: 6px; padding: 14px 6px 6px;
+    background: linear-gradient(transparent, #050607 35%); border: 0; box-shadow: none; }
+  #abas { gap: 3px; flex: 1; min-width: 0; align-items: stretch; }
+  .grupo-abas, .grupo-abas > div { display: contents; }
+  .grupo-abas small { display: none; }
+  .selo { display: block; margin-left: 0; white-space: normal; }
+  #abas button, #abas button.ativo { flex: 1 1 auto; min-width: 0; white-space: nowrap; border: 1px solid #000; border-radius: 6px; padding: 12px 2px; font-size: 12px; }
   /* A escolha da casa sobe para a barra de título (o script a muda de lugar), para as cinco abas caberem. */
   .barra-titulo label { margin-left: auto; font-size: 0; min-width: 0; }
   .barra-titulo select { max-width: 100%; min-width: 0; width: 124px; font-size: 14px; padding: 7px 4px; }
@@ -370,12 +382,14 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button></p>
   <div class="barra-abas">
     <nav id="abas" aria-label="Seções">
-      <button type="button" data-modo="leiloes" class="ativo">Leilões</button>
+      <div class="grupo-abas real"><small>Anúncios reais do jogo</small><div>
+      <button type="button" data-modo="leiloes" class="ativo">Leilões</button></div></div>
+      <div class="grupo-abas"><small>Cálculos e estimativas do site</small><div>
       <button type="button" data-modo="profissoes">Profissões</button>
       <button type="button" data-modo="resumo">Resumo</button>
       <button type="button" data-modo="ofertas">Ofertas</button>
       <button type="button" data-modo="arbitragem"><span class="longo">Entre casas</span><span class="curto">Casas</span></button>
-      <button type="button" data-modo="lista">Lista</button>
+      <button type="button" data-modo="lista">Lista</button></div></div>
     </nav>
     <label>Casa <select id="casa"></select></label>
     <div id="atualizado"></div>
@@ -384,12 +398,12 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
 <div id="velho" class="alerta" role="status" hidden></div>
 <div id="boas-vindas" data-nt hidden>
   <div data-l="pt"><strong>Bem-vindo ao Goblinomics.</strong> O site lê a casa de leilões do WoW: Forever a cada hora e mostra onde está o lucro.
-    <ul><li><strong>Leilões</strong>: preços, histórico e vendas por dia de cada item.</li>
+    <ul><li><strong>Leilões</strong>: a listagem real da casa de leilões, com o histórico de cada item.</li>
       <li><strong>Profissões</strong> e <strong>Resumo</strong>: o que vale fabricar e o que fazer agora.</li>
       <li><strong>Ofertas</strong> e <strong>Entre casas</strong>: o que está barato e o que revender em outra casa.</li></ul>
     Escolha a sua casa no seletor <strong>Casa</strong> (cada ruleset e facção tem a sua) e marque-a como padrão.</div>
   <div data-l="en"><strong>Welcome to Goblinomics.</strong> This site reads the WoW: Forever auction house every hour and shows where the profit is.
-    <ul><li><strong>Auctions</strong>: prices, history and sales per day for every item.</li>
+    <ul><li><strong>Auctions</strong>: the actual auction house listing, with each item's history.</li>
       <li><strong>Professions</strong> and <strong>Summary</strong>: what is worth crafting and what to do now.</li>
       <li><strong>Deals</strong> and <strong>Across houses</strong>: what is cheap and what to resell in another house.</li></ul>
     Pick your house in the <strong>House</strong> selector (each ruleset and faction has its own) and mark it as default.</div>
@@ -411,6 +425,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <label class="avancado">Preço máx. (ouro) <input id="f-preco" type="number" min="0" step="any" style="width:86px"></label>
       <button class="acao avancado" type="button" id="limpar">Limpar</button>
     </form>
+    <p class="nota real">Esta aba é a listagem real da casa de leilões, como estava na última coleta: item, menor preço e quantidade vêm direto do jogo, sem conta nenhuma. Só as colunas com til (~) são cálculos do site.</p>
     <div class="rolagem">
       <table>
         <thead><tr>
@@ -419,9 +434,9 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
           <th data-ordem="nivel" class="num sd">Nível</th>
           <th data-ordem="req" class="num sd">Req.</th>
           <th data-ordem="qtd" class="num">Disponível</th>
-          <th data-ordem="tend" class="num sd" title="Menor preço de agora contra a média dos menores preços dos últimos 7 dias. Verde: mais barato que a média">7 dias</th>
-          <th data-ordem="vdia" class="num sd" title="Vendas estimadas por dia, comparando uma coleta com a seguinte">Vendas/dia</th>
-          <th data-ordem="mercado" class="num sd">Mercado (un.)</th>
+          <th data-ordem="tend" class="num sd est" title="Menor preço de agora contra a média dos menores preços dos últimos 7 dias. Verde: mais barato que a média">7 dias</th>
+          <th data-ordem="vdia" class="num sd est" title="Vendas estimadas por dia, comparando uma coleta com a seguinte">Vendas/dia</th>
+          <th data-ordem="mercado" class="num sd est" title="Média das 15% unidades mais baratas à venda agora">Mercado (un.)</th>
         </tr></thead>
         <tbody id="linhas"></tbody>
       </table>
@@ -600,11 +615,21 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Preços</h3>
     <ul>
       <li><strong>Menor preço</strong>: o arremate mais barato por unidade na última foto. Anúncio só com lance não tem preço.</li>
-      <li><strong>Mercado</strong>: a média das 15% unidades mais baratas. Ignora um anúncio isolado muito barato ou muito caro.</li>
-      <li><strong>Média de 7 dias</strong>: a média do menor preço de cada foto dos últimos 7 dias. Só existe depois de 6 fotos.</li>
+      <li><strong>Mercado</strong>: a média das 15% unidades mais baratas. Os anúncios caros do topo não entram.</li>
+      <li><strong>Média de 7 dias</strong> (o preço habitual): a média do menor preço de cada foto dos últimos 7 dias, sem as fotos absurdas (veja abaixo). Só existe depois de 6 fotos.</li>
       <li><strong>Coluna "7 dias"</strong>: quanto o menor preço de agora está acima ou abaixo dessa média.</li>
     </ul>
     <p>Os preços são exatos no momento da foto, mas a foto pode ter até uma hora (às vezes mais, quando a Blizzard atrasa).</p>
+    <h3>Anúncios absurdos</h3>
+    <p>A aba Leilões mostra tudo o que está anunciado, sem filtro. Nas contas, um preço a mais de 5 vezes do habitual do item (acima ou abaixo) é tratado como fora da curva:</p>
+    <ul>
+      <li><strong>Na média de 7 dias</strong>: fotos em que o menor preço ficou a mais de 5 vezes da mediana do período não entram.</li>
+      <li><strong>Nas vendas</strong>: um anúncio que some custando mais de 5 vezes o habitual é contado como cancelado, não como vendido.</li>
+      <li><strong>No lucro</strong> (Profissões, Carteira, Entre casas): se o menor anúncio de agora está mais de 5 vezes acima do habitual, a venda é calculada pelo habitual. O item leva o aviso "⚠ acima do habitual".</li>
+      <li><strong>⚠ abaixo do habitual</strong>: o menor anúncio está a menos de um quinto do habitual. Pode ser pechincha ou engano de quem anunciou; ele existe e pode ser comprado, então continua valendo como preço de compra.</li>
+      <li><strong>⚠ preço incerto</strong>: o item tem um ou dois anúncios e ainda não tem histórico. Não dá para saber se o preço é normal; essas receitas ficam fora de "O que fazer agora".</li>
+    </ul>
+    <p>A referência é o histórico do próprio item, não os outros anúncios do momento: é comum a maioria dos anúncios estar cara e o preço de verdade ser o mais barato. Uma alta ou queda real de preço parece absurda nas primeiras horas e é aceita conforme a média acompanha. É uma regra prática, e pode errar.</p>
     <h3>Vendas por dia</h3>
     <p>É uma estimativa. A cada foto nova, comparamos com a anterior e olhamos o que sumiu. Um anúncio some por três motivos, e a API não diz qual:</p>
     <ul>
@@ -650,11 +675,21 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Prices</h3>
     <ul>
       <li><strong>Lowest price</strong>: the cheapest buyout per unit in the latest snapshot. Bid-only listings have no price.</li>
-      <li><strong>Market</strong>: the average of the cheapest 15% of units. It ignores a lone listing that is far too cheap or too expensive.</li>
-      <li><strong>7-day average</strong>: the average of the lowest price in each snapshot over the last 7 days. It needs at least 6 snapshots.</li>
+      <li><strong>Market</strong>: the average of the cheapest 15% of units. Expensive listings at the top are left out.</li>
+      <li><strong>7-day average</strong> (the usual price): the average of the lowest price in each snapshot over the last 7 days, without the absurd snapshots (see below). It needs at least 6 snapshots.</li>
       <li><strong>"7 days" column</strong>: how far the current lowest price is above or below that average.</li>
     </ul>
     <p>Prices are exact at snapshot time, but the snapshot can be up to an hour old (sometimes more, when Blizzard is late).</p>
+    <h3>Absurd listings</h3>
+    <p>The Auctions tab shows everything that is listed, unfiltered. In the calculations, a price more than 5 times away from the item's usual price (above or below) is treated as an outlier:</p>
+    <ul>
+      <li><strong>In the 7-day average</strong>: snapshots whose lowest price was more than 5 times away from the period's median are left out.</li>
+      <li><strong>In sales</strong>: a listing that disappears priced at more than 5 times the usual price counts as cancelled, not sold.</li>
+      <li><strong>In profit</strong> (Professions, Portfolio, Across houses): if the current lowest listing is more than 5 times above the usual price, the sale is calculated at the usual price. The item gets the "⚠ above usual" warning.</li>
+      <li><strong>⚠ below usual</strong>: the lowest listing is under a fifth of the usual price. It may be a bargain or a seller's mistake; it exists and can be bought, so it still counts as a purchase price.</li>
+      <li><strong>⚠ uncertain price</strong>: the item has one or two listings and no history yet. There is no way to tell whether the price is normal; these recipes are left out of "What to do now".</li>
+    </ul>
+    <p>The reference is the item's own history, not the other current listings: it is common for most listings to be overpriced and for the real price to be the cheapest one. A real price rise or drop looks absurd for the first hours and is accepted as the average catches up. It is a rule of thumb and can be wrong.</p>
     <h3>Sales per day</h3>
     <p>This is an estimate. With each new snapshot we compare it with the previous one and look at what disappeared. A listing disappears for three reasons, and the API does not say which:</p>
     <ul>
@@ -740,6 +775,17 @@ aplicarTamanho();
 // aqui: primeiro a tabela de textos inteiros, depois as frases e os padrões (trechos com números ou nomes).
 // Nomes de itens, tooltips e termos do jogo não passam: já chegam no idioma certo.
 const TEXTOS_EN = {
+  "Anúncios reais do jogo": "Actual in-game listings", "Cálculos e estimativas do site": "Site calculations and estimates",
+  "Esta aba é a listagem real da casa de leilões, como estava na última coleta: item, menor preço e quantidade vêm direto do jogo, sem conta nenhuma. Só as colunas com til (~) são cálculos do site.":
+    "This tab is the actual auction house listing, as it was at the last snapshot: item, lowest price and quantity come straight from the game, with no calculation. Only the columns marked with a tilde (~) are computed by the site.",
+  "Média das 15% unidades mais baratas à venda agora": "Average of the cheapest 15% of units listed now",
+  "⚠ acima do habitual": "⚠ above usual", "⚠ abaixo do habitual": "⚠ below usual", "⚠ preço incerto": "⚠ uncertain price",
+  "Menor anúncio muito acima do preço habitual deste item (média de 7 dias). Nos cálculos de lucro, a venda usa o habitual.":
+    "Lowest listing far above this item's usual price (7-day average). Profit calculations use the usual price for the sale.",
+  "Menor anúncio muito abaixo do preço habitual deste item (média de 7 dias). Pode ser pechincha ou engano de quem anunciou.":
+    "Lowest listing far below this item's usual price (7-day average). It may be a bargain or a seller's mistake.",
+  "Um ou dois anúncios e nenhum histórico: não dá para saber se este preço é normal.":
+    "One or two listings and no history: there is no way to tell whether this price is normal.",
   "Seções": "Sections", "Leilões": "Auctions", "Profissões": "Professions", "Resumo": "Summary", "Ofertas": "Deals",
   "Entre casas": "Across houses", "Casas": "Houses", "Lista": "List", "Casa": "House", "Categorias": "Categories",
   "Nome": "Name", "Buscar item": "Search item", "Favoritos": "Favorites", "só eles": "only these", "Filtros": "Filters",
@@ -935,7 +981,7 @@ if (EN) {
 
 const guardarPrefs = () => { try { localStorage.setItem("ah-forever", JSON.stringify(prefs)); } catch {} };
 const alternar = (lista, id) => { const i = lista.indexOf(id); i < 0 ? lista.push(id) : lista.splice(i, 1); guardarPrefs(); };
-let casaAtual, vendasCasa = {horas: 0, itens: {}};
+let casaAtual, vendasCasa = {horas: 0, itens: {}}, mediasCasa = {};
 // Horas de observação para mostrar vendas por dia e para ranquear por elas.
 const HORAS_PARA_MOSTRAR = 2, HORAS_PARA_RANQUEAR = 6, HORAS_DE_ATRASO = 2, HORAS_DE_PANE = 4;
 // A coleta roda a cada 20 minutos; passando disto sem carimbo novo, parou.
@@ -1391,7 +1437,7 @@ function calcularReceitas() {
   custos = new Map(); receitasDoItem = new Map();
   for (const r of receitas.receitas) receitasDoItem.set(r[4], [...(receitasDoItem.get(r[4]) || []), r]);
   todasReceitas = receitas.receitas.map(([rid, profId, categoria, nome, item, feitos, reagentes]) => {
-    const g = porItem.get(item), venda = g ? g.min : null;
+    const g = porItem.get(item), venda = g ? g.venda : null;
     let custo = 0, completo = true;
     const partes = reagentes.map(([id, q]) => {
       const p = precoReagente(id);
@@ -1406,7 +1452,7 @@ function calcularReceitas() {
     const exibido = !EN && catalogo.itens[item]?.[10] ? catalogo.itens[item][0] : nome;
     return {rid, recarga: horas, profId, categoria: categoria || "", nome: exibido, busca: (exibido + " " + nome).toLowerCase(), item, feitos, partes,
       custo: completo ? custo : null, bruto, lucro, margem: lucro != null && custo > 0 ? lucro / custo * 100 : null,
-      qtd: g ? g.qtd : 0, vdia: g ? g.vdia : null, verro: g ? g.verro : null,
+      qtd: g ? g.qtd : 0, vdia: g ? g.vdia : null, verro: g ? g.verro : null, suspeito: g ? g.suspeito : null,
       lucroDia: lucro != null && vezes != null ? Math.round(lucro * vezes) : null};
   });
   for (const l of todasReceitas) {
@@ -1436,11 +1482,11 @@ function desenharMateriais() {
     const valor = g => g.min == null ? -1 : g.vdia != null ? g.min * g.vdia : g.min;
     for (const g of materiaisDe(subs).filter(g => !nome || g.busca.includes(nome)).sort((a, b) => valor(b) - valor(a))) {
       const aberto = prof.materiaisAbertos.has(g.id);
-      const lucro = g.min == null ? null : Math.round(g.min * (1 - corteDaCasa()));
+      const lucro = g.venda == null ? null : Math.round(g.venda * (1 - corteDaCasa()));
       const npcMelhor = lucro != null && g.npc != null && g.npc > lucro;
       const lucroDia = lucro != null && g.vdia != null ? Math.round(lucro * g.vdia) : null;
       h += `<tr class="item abre" data-id="${g.id}" aria-expanded="${aberto}">
-        <td class="nome">${iconeHtml(g)}<span><span class="q-${g.qualidade}">${esc(g.nome)}</span>
+        <td class="nome">${iconeHtml(g)}<span><span class="q-${g.qualidade}">${esc(g.nome)}</span>${selo(g)}
           <span class="sm">Menor preço ${moeda(g.min)}</span>
           <span class="sm">${[g.npc ? `NPC paga ${moeda(g.npc)}` : "", g.vdia != null ? `vende ~${porDia(g.vdia)}/dia${textoMargem(g.verro)}` : ""].filter(Boolean).join(" · ")}</span></span></td>
         <td class="num sd">${moeda(g.min)}</td><td class="num sd">${moeda(g.mercado)}</td>
@@ -1486,7 +1532,7 @@ function desenharProf() {
     const margem = l.margem == null ? "–" : Math.round(l.margem).toLocaleString(LOC) + "%";
     h += `<tr class="item abre" data-id="${l.item}" data-rid="${l.rid}" aria-expanded="${aberto}">
       <td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(l.nome)}</span>
-        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}
+        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}${selo(l, ["alto", "incerto"])}
         ${dif != null ? `<span class="variantes dif-${dif}" title="Fica amarela com ${faixa[0]} de habilidade e cinza com ${faixa[1]}">${CORES_DIF[dif]}</span>` : ""}
         ${l.recarga ? `<span class="variantes" title="Só dá para fabricar uma vez a cada ${textoRecarga(l.recarga)}">recarga ${textoRecarga(l.recarga)}</span>` : ""}
         <span class="sm">${esc(l.categoria)}${margem === "–" ? "" : ` · margem ${margem}`}${l.vdia != null ? ` · vende ~${porDia(l.vdia)}/dia${textoMargem(l.verro)}` : ""}</span></span><button type="button" class="fav mais ${prefs.lista[l.rid] ? "ativo" : ""}" data-lista="${l.rid}" title="${prefs.lista[l.rid] ? "Tirar da lista de compras" : "Pôr na lista de compras"}" aria-label="Lista de compras" aria-pressed="${!!prefs.lista[l.rid]}">${prefs.lista[l.rid] ? "✓" : "＋"}</button></td>
@@ -1500,7 +1546,7 @@ function desenharProf() {
     if (!aberto) continue;
     const materiais = l.partes.map(p => {
       const r = infoItem(p.id);
-      return `<tr data-id="${p.id}"><td class="nome">${iconeHtml(r)}<span class="q-${r.qualidade}">${esc(r.nome)}</span></td>
+      return `<tr data-id="${p.id}"><td class="nome">${iconeHtml(r)}<span class="q-${r.qualidade}">${esc(r.nome)}</span>${p.fonte === "leilão" ? selo(porItem.get(p.id)) : ""}</td>
         <td class="num">× ${p.q}</td><td class="num sd">${moedaOuTraco(p.preco)}</td>
         <td class="num">${moedaOuTraco(p.preco == null ? null : p.preco * p.q)}</td><td class="fonte">${p.fonte}</td></tr>${subMateriais(p)}`;
     }).join("");
@@ -1650,7 +1696,7 @@ const VEZES_ABSURDAS = 50;
 function casaDoMercado(casa) {
   if (!outrasCasas.has(casa.arquivo))
     outrasCasas.set(casa.arquivo, json("dados/" + casa.arquivo).then(d => ({casa,
-      itens: new Map(agrupar(d.linhas).map(g => [g.id, g])), vendas: d.vendas || {horas: 0, itens: {}}}))
+      itens: new Map(agrupar(d.linhas).map(g => [g.id, g])), vendas: d.vendas || {horas: 0, itens: {}}, medias: d.medias || {}}))
       .catch(e => { outrasCasas.delete(casa.arquivo); throw e; }));
   return outrasCasas.get(casa.arquivo);
 }
@@ -1667,7 +1713,7 @@ async function abrirArbitragem() {
 
 // Preenche linhasArb com as rotas entre a casa atual e as outras do mesmo mercado. Devolve a casa, ou null se ela mudou no caminho.
 async function calcularArbitragem() {
-  const aqui = {casa: casaAtual, itens: porItem, vendas: vendasCasa};
+  const aqui = {casa: casaAtual, itens: porItem, vendas: vendasCasa, medias: mediasCasa};
   const outras = await Promise.all(meta.casas.filter(c => c.grupo === aqui.casa.grupo && c !== aqui.casa).map(casaDoMercado));
   if (casaAtual !== aqui.casa) return null;
   // Variantes (sufixos) têm preços que não se comparam entre si.
@@ -1679,7 +1725,9 @@ async function calcularArbitragem() {
       const d = destino.itens.get(id);
       if (!simples(o) || !simples(d)) continue;
       // Vende-se pelo menor anúncio de lá ou, se for menos, pelo preço a que o item tem saído lá.
-      const venda = Math.min(d.min, vendeA(destino.vendas, id) ?? Infinity);
+      // Menor anúncio de lá muito acima do habitual de lá: vale o habitual.
+      const habitual = destino.medias[id], la = habitual && d.min > VEZES_DO_HABITUAL * habitual ? habitual : d.min;
+      const venda = Math.min(la, vendeA(destino.vendas, id) ?? Infinity);
       const compra = o.mercado ?? o.min, lucro = Math.round(venda * (1 - taxa(destino.casa))) - compra;
       // Anúncio único a preço absurdo no destino (9.999.999 de ouro por um peixe) não é oportunidade.
       if (lucro <= 0 || venda > compra * VEZES_ABSURDAS) continue;
@@ -1696,7 +1744,7 @@ function desenharAgora(comArbitragem) {
   const corte = corteDaCasa(), entradas = [];
   const porDiaOuTudo = (vdia, n) => vdia == null ? n : Math.min(n, Math.max(1, Math.floor(vdia)));
   for (const l of todasReceitas) {
-    if (!l.ate || l.vdia === 0 || (prefs.profissoes.length && !prefs.profissoes.includes(l.profId))) continue;
+    if (!l.ate || l.vdia === 0 || l.suspeito === "incerto" || (prefs.profissoes.length && !prefs.profissoes.includes(l.profId))) continue;
     const n = porDiaOuTudo(l.vdia == null ? null : l.vdia / l.feitos, l.ate), lucro = lucroFabricando(l, n);
     if (lucro > 0) entradas.push({tipo: "Fabricar", modo: "profissoes", prof: l.profId, id: l.item, nome: l.nome, lucro, detalhe: `${n} × · ${receitas.profissoes[l.profId]}`});
   }
@@ -1732,7 +1780,7 @@ function desenharCarteira() {
   const corte = corteDaCasa();
   let pago = 0, vale = 0;
   $("linhas-carteira").innerHTML = prefs.carteira.map((c, n) => {
-    const g = porItem.get(c.id), i = infoItem(c.id), liquido = g?.min == null ? null : Math.round(g.min * (1 - corte));
+    const g = porItem.get(c.id), i = infoItem(c.id), liquido = g?.venda == null ? null : Math.round(g.venda * (1 - corte));
     const lucro = liquido == null ? null : (liquido - c.pago) * c.q;
     pago += c.pago * c.q; vale += (liquido ?? 0) * c.q;
     return `<tr class="item" data-id="${c.id}"><td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(i.nome)}</span>
@@ -1901,6 +1949,23 @@ function haQuanto(iso) {
   return h < 48 ? `há ${h} h` : `há ${Math.floor(h / 24)} dias`;
 }
 
+// Anúncio absurdo: o menor preço de agora a mais de VEZES_DO_HABITUAL do preço habitual do item (a média
+// de 7 dias, que já vem sem as fotos absurdas). g.venda é o preço usado para calcular quanto o item rende.
+const VEZES_DO_HABITUAL = 5;
+function marcarSuspeito(g) {
+  g.suspeito = g.min == null ? null
+    : g.media ? (g.min > VEZES_DO_HABITUAL * g.media ? "alto" : g.min * VEZES_DO_HABITUAL < g.media ? "baixo" : null)
+    : g.anuncios <= 2 ? "incerto" : null;
+  g.venda = g.suspeito === "alto" ? g.media : g.min;
+}
+const SELOS = {
+  alto: ["⚠ acima do habitual", "Menor anúncio muito acima do preço habitual deste item (média de 7 dias). Nos cálculos de lucro, a venda usa o habitual."],
+  baixo: ["⚠ abaixo do habitual", "Menor anúncio muito abaixo do preço habitual deste item (média de 7 dias). Pode ser pechincha ou engano de quem anunciou."],
+  incerto: ["⚠ preço incerto", "Um ou dois anúncios e nenhum histórico: não dá para saber se este preço é normal."],
+};
+const selo = (g, tipos = ["alto", "baixo", "incerto"]) => g?.suspeito && tipos.includes(g.suspeito)
+  ? `<span class="selo" title="${SELOS[g.suspeito][1]}">${SELOS[g.suspeito][0]}</span>` : "";
+
 // Junta as variantes do mesmo item numa linha só.
 function agrupar(linhas) {
   const porItem = new Map();
@@ -2032,7 +2097,7 @@ function desenhar() {
     h += `<tr class="item abre" data-id="${g.id}" aria-expanded="${aberto}">
       <td class="num">${moeda(g.min)}</td>
       <td class="nome">${icone}<span><span class="q-${g.qualidade}">${esc(g.nome)}</span>
-        ${varias ? `<span class="variantes">${g.variantes.length} variantes</span>` : ""}
+        ${varias ? `<span class="variantes">${g.variantes.length} variantes</span>` : ""}${selo(g, ["alto", "baixo"])}
         <span class="sm">${[g.nivel != null ? `Nível ${g.nivel}` : "", g.req ? `requer ${g.req}` : "",
           g.vdia != null ? `vende ~${porDia(g.vdia)}/dia${textoMargem(g.verro)}` : "", g.tend != null && Math.abs(g.tend) >= 5 ? `${pct(g.tend)} na semana` : ""].filter(Boolean).join(" · ")}</span></span><button type="button" class="fav ${prefs.favoritos.includes(g.id) ? "ativo" : ""}" data-fav="${g.id}" title="Favorito" aria-label="Favorito" aria-pressed="${prefs.favoritos.includes(g.id)}">★</button></td>
       <td class="num sd">${g.nivel ?? "–"}</td><td class="num sd">${g.req || "–"}</td>
@@ -2073,6 +2138,7 @@ async function carregarCasa() {
   const dados = await json("dados/" + casa.arquivo);
   grupos = agrupar(dados.linhas);
   vendasCasa = dados.vendas || {horas: 0, itens: {}};
+  mediasCasa = dados.medias || {};
   const temVendas = vendasCasa.horas >= HORAS_PARA_MOSTRAR;
   for (const g of grupos) {
     g.vdia = temVendas ? (vendasCasa.itens[g.id] || 0) / vendasCasa.horas * 24 : null;
@@ -2080,6 +2146,7 @@ async function carregarCasa() {
     g.media = dados.medias?.[g.id] ?? null;
     // Variação do menor preço de agora contra a média da semana, em %.
     g.tend = g.media && g.min != null ? (g.min / g.media - 1) * 100 : null;
+    marcarSuspeito(g);
   }
   prefs.casa = casa.id; guardarPrefs();
   if (temVendas && prof.ordem === "lucro" && !prof.ordemEscolhida) prof.ordem = "lucroDia";
