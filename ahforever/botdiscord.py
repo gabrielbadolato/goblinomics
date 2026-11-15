@@ -7,7 +7,9 @@ Dois jeitos de usar: os comandos de barra (/preco, /receita, /quemfaz), com a re
 todos, e o painel fixo de botões (/painel), em que cada pessoa consulta em privado.
 """
 import asyncio
+import json
 import logging
+import time
 
 import discord
 from discord import app_commands
@@ -212,6 +214,101 @@ TEXTO_DO_PAINEL = (
     "Para responder à vista de todos, use os comandos `/preco`, `/receita` e `/quemfaz`.")
 
 
+HORAS_DE_ATRASO = 3
+MARCA_DO_PAINEL = "Painel do Goblinomics"
+
+
+class PainelFixo:
+    """Uma só mensagem de painel, num canal escolhido com /painel: o bot a recria se for apagada
+    e reescreve o trecho dos dados a cada foto nova. O canal e a mensagem ficam num arquivo."""
+
+    def __init__(self, bot, arquivo):
+        self.bot, self.arquivo, self.fixado = bot, arquivo, None
+        # Arquivo quebrado não pode virar um painel novo em silêncio: o erro aparece no registro.
+        self.estado = json.loads(arquivo.read_text()) if arquivo.exists() else {}
+
+    def guardar(self):
+        temporario = self.arquivo.with_suffix(".tmp")
+        temporario.write_text(json.dumps(self.estado))
+        temporario.replace(self.arquivo)
+
+    def cartao(self):
+        d = self.bot.dados
+        foto = int(d.quando().timestamp())
+        atrasada = time.time() - foto > HORAS_DE_ATRASO * 3600
+        dados = (f"**Dados:** foto de <t:{foto}:f> (<t:{foto}:R>) · {_numero(len(d.precos))} itens à venda"
+                 + (f"\n⚠️ Sem foto nova há mais de {HORAS_DE_ATRASO} horas: a coleta pode estar parada." if atrasada else ""))
+        cartao = discord.Embed(title="Goblinomics", description=TEXTO_DO_PAINEL + "\n\n" + dados, color=DOURADO,
+                               url=self.bot.cfg.url_site or None)
+        cartao.set_footer(text=MARCA_DO_PAINEL)
+        return cartao
+
+    def _e_painel(self, mensagem):
+        return (mensagem.author.id == self.bot.user.id and bool(mensagem.components)
+                and any(e.title == "Goblinomics" for e in mensagem.embeds))
+
+    async def _achar(self, canal):
+        """A mensagem do painel: a guardada ou, se o arquivo se perdeu, a que já está no canal."""
+        if self.estado.get("canal") == canal.id and self.estado.get("mensagem"):
+            try:
+                return await canal.fetch_message(self.estado["mensagem"])
+            except discord.NotFound:
+                pass
+        try:
+            async for mensagem in canal.history(limit=200):
+                if self._e_painel(mensagem):
+                    return mensagem
+        except discord.Forbidden:
+            log.warning("sem permissão para ler o histórico do canal do painel")
+        return None
+
+    async def conferir(self):
+        """Garante que o painel existe no canal escolhido e está com os dados da foto atual."""
+        if not self.estado.get("canal"):
+            return
+        await self.bot.cartoes()
+        canal = self.bot.get_partial_messageable(self.estado["canal"])
+        cartao, mensagem = self.cartao(), await self._achar(canal)
+        if mensagem is None:
+            mensagem = await canal.send(embed=cartao, view=Painel(self.bot))
+            log.info("painel publicado")
+        elif not mensagem.embeds or mensagem.embeds[0].description != cartao.description:
+            mensagem = await mensagem.edit(embed=cartao, view=Painel(self.bot))
+        if self.estado.get("mensagem") != mensagem.id:
+            self.estado.update(canal=canal.id, mensagem=mensagem.id)
+            self.guardar()
+        if self.fixado != mensagem.id:
+            self.fixado = mensagem.id
+            try:
+                if not mensagem.pinned:
+                    await mensagem.pin(reason="Painel do Goblinomics")
+            except discord.HTTPException:
+                log.info("painel publicado, mas sem permissão para fixar; fixe à mão no Discord")
+
+    async def mudar_de_canal(self, canal_id):
+        """O painel passa a morar neste canal; o do canal antigo é apagado."""
+        antigo = dict(self.estado)
+        self.estado = {"canal": canal_id}
+        self.guardar()
+        if antigo.get("mensagem") and antigo.get("canal") != canal_id:
+            try:
+                await self.bot.get_partial_messageable(antigo["canal"]).get_partial_message(antigo["mensagem"]).delete()
+            except discord.HTTPException:
+                pass
+        await self.conferir()
+
+    async def rodar(self):
+        await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            try:
+                await self.conferir()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("falha ao conferir o painel fixo; nova tentativa no próximo ciclo")
+            await asyncio.sleep(120)
+
+
 class Bot(discord.Client):
     def __init__(self, cfg):
         super().__init__(intents=discord.Intents.none(), allowed_mentions=discord.AllowedMentions.none())
@@ -223,6 +320,8 @@ class Bot(discord.Client):
     async def setup_hook(self):
         await asyncio.to_thread(self.dados.atualizar)
         self.add_view(Painel(self))
+        self.painel_fixo = PainelFixo(self, self.cfg.banco.parent / "painel_bot.json")
+        self._tarefa_do_painel = asyncio.create_task(self.painel_fixo.rodar())
         # Com servidores no config os comandos aparecem na hora; sem eles, valem em todo lugar
         # onde o bot for convidado, e o Discord pode levar até uma hora para mostrar.
         if self.cfg.bot_servidores:
@@ -274,13 +373,19 @@ class Bot(discord.Client):
         consultar("receita", "Custo e lucro de fabricar um item, e quem da guilda faz", "Item fabricado, em português ou inglês")
         consultar("quemfaz", "Quem da guilda sabe fabricar um item", "Item fabricado, em português ou inglês")
 
-        @self.tree.command(name="painel", description="Publica neste canal o painel de botões do Goblinomics")
+        @self.tree.command(name="painel", description="Fixa neste canal o painel de botões do Goblinomics")
         @app_commands.default_permissions(manage_guild=True)
         @app_commands.guild_only()
         async def painel(interacao):
-            cartao = discord.Embed(title="Goblinomics", description=TEXTO_DO_PAINEL, color=DOURADO,
-                                   url=self.cfg.url_site or None)
-            await interacao.response.send_message(embed=cartao, view=Painel(self))
+            await interacao.response.defer(ephemeral=True)
+            try:
+                await self.painel_fixo.mudar_de_canal(interacao.channel_id)
+            except discord.Forbidden:
+                await interacao.followup.send("Não consegui publicar aqui: o bot precisa ver o canal, ler o histórico, "
+                                              "enviar mensagens e inserir links.", ephemeral=True)
+                return
+            await interacao.followup.send("Painel fixo neste canal. Se ele for apagado, eu publico de novo; a linha dos "
+                                          "dados se atualiza a cada foto nova.", ephemeral=True)
 
 
 def main():
