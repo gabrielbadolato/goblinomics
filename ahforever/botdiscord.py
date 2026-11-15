@@ -339,8 +339,9 @@ class Painel(discord.ui.View):
 
     @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=3)
     async def ajuda(self, interacao, _):
-        cartao = discord.Embed(title="Como usar o Goblinomics", description=INSTRUCOES, color=DOURADO,
-                               url=self.bot.cfg.url_site or None)
+        cartao = discord.Embed(title="❓ Como usar o Goblinomics", color=DOURADO, url=self.bot.cfg.url_site or None)
+        for titulo, texto in INSTRUCOES:
+            cartao.add_field(name=titulo, value=texto, inline=False)
         await interacao.response.send_message(embed=cartao, ephemeral=True)
 
     async def on_error(self, interacao, erro, item):
@@ -349,28 +350,46 @@ class Painel(discord.ui.View):
             await interacao.response.send_message("Não deu para responder agora. Tente de novo em instantes.", ephemeral=True)
 
 
+# Instruções do botão "Como usar": (título, texto) de cada bloco. Ao mudar o bot, revisar aqui.
 INSTRUCOES = (
-    "**Botões do painel** (a resposta aparece só para você)\n"
-    "🔎 **Preço**, 🛠️ **Receita** e 👥 **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, "
-    "em português ou inglês, sem se preocupar com acento. Se vários itens baterem, escolha na lista.\n"
-    "📉 **Ofertas**, 💰 **Lucro da guilda**, 🧪 **Consumíveis** e 📋 **Desejos** respondem na hora.\n"
-    "🧙 **Meu personagem**: escolha o seu uma vez e veja quais das suas receitas dão lucro agora.\n"
-    "🔔 **Meus alertas**: escolha um item e um preço-alvo; o bot te avisa em mensagem privada quando chegar lá.\n\n"
-    "**Comandos** `/preco`, `/receita` e `/quemfaz`\n"
-    "Comece a digitar o item e escolha uma das sugestões. A resposta fica à vista de todos e some em 1 hora. "
-    "No canal do painel ela aparece só para você, para o canal ficar limpo.\n\n"
-    "**Como ler os números**\n"
-    "• **Menor preço**: o anúncio mais barato na última foto da casa de leilões.\n"
-    "• **Habitual**: a média do menor preço nos últimos 7 dias. A porcentagem compara o preço de agora com ela.\n"
-    "• **Vendas por dia**: estimativa, pelo que some entre uma foto e outra.\n"
-    "• **Lucro**: venda pelo menor preço menos a taxa de 5%, menos os materiais ao preço de agora.\n"
-    "• **Na guilda**: quem sabe fabricar, lido do jogo duas vezes por dia.\n\n"
-    "**Limites**\n"
-    "• A Blizzard só atualiza os preços de hora em hora; confira no jogo antes de comprar ou vender.\n"
-    "• Os preços são da casa de leilões da Horda, ruleset Normal.\n"
-    "• O bot só consulta: não compra, não vende e não anuncia nada.\n\n"
-    "**No site** há mais: histórico de preço, caminho para subir profissão, lista de compras com exportação "
-    "para o Auctionator e a conta completa das receitas.")
+    ("🔎 Consultar um item",
+     "**Preço**, **Receita** e **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, em português "
+     "ou inglês, sem se preocupar com acento nem com a ordem das palavras. Se vários itens baterem, escolha na lista."),
+    ("📊 Listas prontas",
+     "**Ofertas**: itens 30% ou mais abaixo do habitual e com boa saída.\n"
+     "**Lucro da guilda**: receitas que alguém da guilda sabe e dão lucro agora.\n"
+     "**Consumíveis**: custo de hoje da lista de raide, por pessoa.\n"
+     "**Desejos**: o que a guilda está juntando; ✅ marca o que está bom para comprar."),
+    ("🧙 Só seu",
+     "**Meu personagem**: escolha o seu uma vez e veja quais das suas receitas dão lucro. Dá para trocar quando quiser.\n"
+     "**Meus alertas**: até 10. Escolha item, preço-alvo e se quer aviso abaixo ou acima. O bot confere a cada foto "
+     "nova e avisa em mensagem privada, uma vez por cruzamento. Precisa das mensagens diretas abertas para membros "
+     "do servidor."),
+    ("📣 Privado ou à vista de todos",
+     "Tudo que sai dos botões aparece só para você. Para mostrar um resultado aos outros, use o botão "
+     "**Mostrar no canal** que vem embaixo da resposta, ou os comandos `/preco`, `/receita` e `/quemfaz` em outro canal. "
+     "O que é publicado some sozinho em 1 hora. O **resumo do dia** sai uma vez por dia no canal de avisos, só "
+     "quando há novidade."),
+    ("🧾 Como ler uma resposta",
+     "• O **título** leva ao item no site, com o histórico de preço. Cada **nome de item** é um link para o Wowhead.\n"
+     "• **Menor preço**: o anúncio mais barato na última foto da casa de leilões.\n"
+     "• **Habitual**: a média do menor preço em 7 dias. 📈 e 📉 comparam o preço de agora com ela.\n"
+     "• **Vendas por dia**: estimativa, pelo que some entre uma foto e outra.\n"
+     "• **Lucro**: venda pelo menor preço menos a taxa de 5%, menos os materiais ao preço de agora. É a conta simples; "
+     "a do site é mais completa.\n"
+     "• **👥 Na guilda**: quem sabe fabricar, lido do jogo duas vezes por dia.\n"
+     "• A **cor** do cartão é a raridade do item."),
+    ("⚠️ Limites",
+     "• A Blizzard só atualiza os preços de hora em hora: confira no jogo antes de comprar ou vender.\n"
+     "• Os preços são da casa de leilões da Horda, ruleset Normal.\n"
+     "• O bot só consulta: não compra, não vende e não anuncia nada."),
+    ("🛠️ Para quem gerencia o servidor",
+     "`/consumivel` e `/desejo` montam as duas listas · `/personagem` inclui alguém de fora da guilda · "
+     "`/painel`, `/canalpublico` e `/canalavisos` escolhem os canais."),
+    ("🌐 No site há mais",
+     "Histórico de preço, caminho para subir profissão, lista de compras com exportação para o Auctionator "
+     "e a conta completa das receitas."),
+)
 
 TEXTO_DO_PAINEL = (
     "Preços da casa de leilões, direto do Goblinomics. As respostas aparecem só para você.\n\n"
