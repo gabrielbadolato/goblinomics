@@ -233,6 +233,11 @@ td.nome .fav { position: absolute; right: 4px; top: 50%; transform: translateY(-
 #boas-vindas ul { margin: 4px 0 8px; padding-left: 20px; } #boas-vindas strong { color: var(--ouro); }
 .lema button { margin-left: 8px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-style: normal; color: var(--ouro-fosco); text-decoration: underline; }
 .lema button:hover { color: #fff; }
+#convite-app { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: #2b2410; border-top: 1px solid #000; border-bottom: 1px solid var(--ouro-fosco); color: #f3e3ad; font-size: 13px; }
+#convite-app .texto { flex: 1 1 220px; }
+#convite-app .acao { font-size: 14px; padding: 7px 18px; }
+#convite-app .fechar { border: 0; background: none; color: inherit; font-size: 16px; cursor: pointer; padding: 4px 8px; }
+#convite-app .passos { flex-basis: 100%; }
 #sem-rede { margin-left: 8px; font-style: normal; color: #ff6b5e; }
 #metodo { width: min(760px, calc(100vw / var(--z) - 16px)); max-height: calc(100vh / var(--z) - 32px); padding: 0; color: var(--texto); background: var(--janela);
   border: 1px solid #000; border-radius: 6px; box-shadow: 0 0 0 1px #6b6b6b, 0 0 0 3px #242424, 0 20px 60px rgba(0, 0, 0, .9); }
@@ -402,6 +407,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <div id="atualizado"></div>
   </div>
 </header>
+<div id="convite-app" data-nt hidden></div>
 <div id="velho" class="alerta" role="status" hidden></div>
 <div id="boas-vindas" data-nt hidden>
   <div data-l="pt"><strong>Bem-vindo ao Goblinomics.</strong> O site lê a casa de leilões do WoW: Forever a cada hora e mostra onde está o lucro.
@@ -2529,16 +2535,39 @@ $("abrir-metodo").onclick = () => $("metodo").showModal();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 // O navegador avisa quando dá para instalar (Chrome, Edge, Android); no iPhone é pelo menu Compartilhar.
 let conviteDeInstalar = null;
-addEventListener("beforeinstallprompt", e => {
-  e.preventDefault(); conviteDeInstalar = e;
-  $("instalar").textContent = L("Instalar aplicativo", "Install app"); $("instalar").hidden = false;
-});
-$("instalar").onclick = async () => {
-  if (!conviteDeInstalar) return;
-  conviteDeInstalar.prompt(); await conviteDeInstalar.userChoice;
-  conviteDeInstalar = null; $("instalar").hidden = true;
+const NO_IPHONE = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const JA_INSTALADO = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+// Faixa de convite logo abaixo do cabeçalho; depois de fechada, sobra o atalho ao lado de "Como calculamos".
+function mostrarConvite() {
+  const pode = !JA_INSTALADO && (conviteDeInstalar || NO_IPHONE);
+  $("instalar").textContent = L("Instalar aplicativo", "Install app");
+  $("instalar").hidden = !pode;
+  const faixa = $("convite-app");
+  faixa.hidden = !pode || prefs.semConvite;
+  if (faixa.hidden) return;
+  faixa.innerHTML = `<span class="texto">📲 <strong>${L("Goblinomics como aplicativo", "Goblinomics as an app")}</strong>: ${L("abre direto da tela inicial e funciona sem internet.", "opens from your home screen and works offline.")}</span>
+    <button type="button" class="acao" data-instalar>${L("Instalar", "Install")}</button>
+    <button type="button" class="fechar" data-fechar-convite aria-label="${L("Fechar", "Close")}">✕</button>`;
+}
+async function instalar() {
+  if (conviteDeInstalar) {
+    conviteDeInstalar.prompt(); await conviteDeInstalar.userChoice;
+    conviteDeInstalar = null; mostrarConvite();
+  } else if (NO_IPHONE) {
+    // A Apple não deixa a página instalar sozinha: só dá para ensinar o caminho.
+    prefs.semConvite = false; mostrarConvite();
+    if (!$("convite-app").querySelector(".passos")) $("convite-app").insertAdjacentHTML("beforeend",
+      `<div class="passos">${L("No Safari: toque em <strong>Compartilhar</strong> (o quadrado com a seta) e depois em <strong>Adicionar à Tela de Início</strong>.", "In Safari: tap <strong>Share</strong> (the square with the arrow), then <strong>Add to Home Screen</strong>.")}</div>`);
+  }
+}
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); conviteDeInstalar = e; mostrarConvite(); });
+addEventListener("appinstalled", () => { conviteDeInstalar = null; $("instalar").hidden = true; $("convite-app").hidden = true; });
+$("instalar").onclick = () => instalar();
+$("convite-app").onclick = e => {
+  if (e.target.closest("[data-instalar]")) instalar();
+  else if (e.target.closest("[data-fechar-convite]")) { prefs.semConvite = true; guardarPrefs(); mostrarConvite(); }
 };
-addEventListener("appinstalled", () => { $("instalar").hidden = true; });
+mostrarConvite();
 function mostrarRede() {
   $("sem-rede").textContent = L("Sem internet: mostrando os últimos dados salvos.", "Offline: showing the last saved data.");
   $("sem-rede").hidden = navigator.onLine;
