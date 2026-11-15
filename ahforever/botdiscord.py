@@ -97,6 +97,10 @@ class Cartoes:
                               "Nenhuma receita conhecida fabrica este item.")
         return cartao
 
+    def montar(self, consulta_id, item_id=None):
+        """O cartão de uma consulta pelo nome dela; as de item recebem o número do item."""
+        return getattr(self, consulta_id)(item_id) if item_id is not None else getattr(self, consulta_id)()
+
     def ofertas(self):
         d = self.d
         cartao = self.base("Ofertas: bem abaixo do preço habitual")
@@ -127,6 +131,44 @@ class Cartoes:
 TITULOS = {"preco": "Preço de qual item?", "receita": "Receita de qual item?", "quemfaz": "Quem faz qual item?"}
 
 
+SEGUNDOS_NO_CANAL = 3600
+SEGUNDOS_ENTRE_COMANDOS = 8
+
+
+class Publicar(discord.ui.View):
+    """Sob uma resposta privada: botão que mostra o mesmo resultado no canal público, por uma hora.
+    Só existe quando um canal público foi escolhido com /canalpublico."""
+
+    def __init__(self, bot, consulta_id, item_id=None):
+        super().__init__(timeout=900)
+        self.bot, self.consulta_id, self.item_id = bot, consulta_id, item_id
+
+    @discord.ui.button(label="Mostrar no canal", emoji="📣", style=discord.ButtonStyle.secondary)
+    async def mostrar(self, interacao, botao):
+        canal_id = self.bot.painel_fixo.estado.get("publico")
+        if not canal_id:
+            await interacao.response.edit_message(view=None)
+            return
+        cartao = (await self.bot.cartoes()).montar(self.consulta_id, self.item_id)
+        cartao.set_author(name=f"Pedido por {interacao.user.display_name}")
+        cartao.set_footer(text=cartao.footer.text + " · some em 1 hora")
+        try:
+            mensagem = await self.bot.get_partial_messageable(canal_id).send(embed=cartao)
+        except discord.HTTPException:
+            await interacao.response.send_message("Não consegui publicar no canal público.", ephemeral=True)
+            return
+        self.bot.painel_fixo.anotar_publica(canal_id, mensagem.id)
+        botao.disabled, botao.label = True, "Mostrado"
+        await interacao.response.edit_message(view=self)
+
+
+def resposta_privada(bot, consulta_id, item_id=None):
+    """Os argumentos de uma resposta só para quem pediu, com o botão de publicar quando há canal público."""
+    if bot.painel_fixo.estado.get("publico"):
+        return {"view": Publicar(bot, consulta_id, item_id), "ephemeral": True}
+    return {"ephemeral": True}
+
+
 class Escolha(discord.ui.View):
     """Vários itens bateram com o texto: quem pediu escolhe um na lista."""
 
@@ -140,8 +182,9 @@ class Escolha(discord.ui.View):
 
     async def escolher(self, interacao):
         cartoes = await self.bot.cartoes()
-        cartao = getattr(cartoes, self.consulta_id)(int(self.lista.values[0]))
-        await interacao.response.edit_message(content=None, embed=cartao, view=None)
+        item_id = int(self.lista.values[0])
+        await interacao.response.edit_message(content=None, embed=cartoes.montar(self.consulta_id, item_id),
+                                              view=resposta_privada(self.bot, self.consulta_id, item_id).get("view"))
 
 
 class Pergunta(discord.ui.Modal):
@@ -161,7 +204,8 @@ class Pergunta(discord.ui.Modal):
         if not achados:
             await interacao.response.send_message(f"Não achei nenhum item com “{texto}”.", ephemeral=True)
         elif len(achados) == 1:
-            await interacao.response.send_message(embed=getattr(cartoes, self.consulta_id)(achados[0]), ephemeral=True)
+            await interacao.response.send_message(embed=cartoes.montar(self.consulta_id, achados[0]),
+                                                  **resposta_privada(self.bot, self.consulta_id, achados[0]))
         else:
             quantos = f"{len(achados)}{'+' if len(achados) == consulta.MAX_SUGESTOES else ''}"
             await interacao.response.send_message(f"{quantos} itens com “{texto}”. Qual deles?",
@@ -192,11 +236,13 @@ class Painel(discord.ui.View):
 
     @discord.ui.button(label="Ofertas", emoji="📉", style=discord.ButtonStyle.secondary, custom_id="gbx:ofertas", row=1)
     async def ofertas(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).ofertas(), ephemeral=True)
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).ofertas(),
+                                              **resposta_privada(self.bot, "ofertas"))
 
     @discord.ui.button(label="Lucro da guilda", emoji="💰", style=discord.ButtonStyle.secondary, custom_id="gbx:lucro", row=1)
     async def lucro(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(), ephemeral=True)
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(),
+                                              **resposta_privada(self.bot, "lucrativas"))
 
     @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=1)
     async def ajuda(self, interacao, _):
@@ -215,8 +261,9 @@ INSTRUCOES = (
     "🔎 **Preço**, 🛠️ **Receita** e 👥 **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, "
     "em português ou inglês, sem se preocupar com acento. Se vários itens baterem, escolha na lista.\n"
     "📉 **Ofertas** e 💰 **Lucro da guilda** respondem na hora, sem perguntar nada.\n\n"
-    "**Comandos** (a resposta fica à vista de todos no canal)\n"
-    "`/preco`, `/receita` e `/quemfaz`: comece a digitar o item e escolha uma das sugestões.\n\n"
+    "**Comandos** `/preco`, `/receita` e `/quemfaz`\n"
+    "Comece a digitar o item e escolha uma das sugestões. A resposta fica à vista de todos e some em 1 hora. "
+    "No canal do painel ela aparece só para você, para o canal ficar limpo.\n\n"
     "**Como ler os números**\n"
     "• **Menor preço**: o anúncio mais barato na última foto da casa de leilões.\n"
     "• **Habitual**: a média do menor preço nos últimos 7 dias. A porcentagem compara o preço de agora com ela.\n"
@@ -238,7 +285,7 @@ TEXTO_DO_PAINEL = (
     "📉 **Ofertas**: itens bem abaixo do preço habitual\n"
     "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
     "❓ **Como usar**: instruções e como ler os números\n\n"
-    "Para responder à vista de todos, use os comandos `/preco`, `/receita` e `/quemfaz`.")
+    "Para mostrar um resultado aos outros, use `/preco`, `/receita` ou `/quemfaz` em outro canal.")
 
 
 HORAS_DE_ATRASO = 3
@@ -317,10 +364,47 @@ class PainelFixo:
             except discord.HTTPException:
                 log.info("painel publicado, mas sem permissão para fixar; fixe à mão no Discord")
 
+    def anotar_publica(self, canal_id, mensagem_id):
+        """Guarda uma resposta pública para apagar depois; no arquivo, para valer mesmo se o bot reiniciar."""
+        self.estado.setdefault("publicas", []).append([canal_id, mensagem_id, int(time.time())])
+        self.guardar()
+
+    async def limpar(self):
+        """Apaga as respostas públicas que já passaram de uma hora."""
+        vencidas = [m for m in self.estado.get("publicas", []) if time.time() - m[2] >= SEGUNDOS_NO_CANAL]
+        if not vencidas:
+            return
+        for canal_id, mensagem_id, _ in vencidas:
+            try:
+                await self.bot.get_partial_messageable(canal_id).get_partial_message(mensagem_id).delete()
+            except discord.NotFound:
+                pass
+            except discord.HTTPException:
+                log.warning("não consegui apagar uma resposta pública vencida")
+        self.estado["publicas"] = [m for m in self.estado["publicas"] if m not in vencidas]
+        self.guardar()
+
+    async def vigiar(self):
+        """Avisa o dono do bot, em privado e uma vez só, quando a coleta para e quando volta."""
+        atrasada = time.time() - self.bot.dados.quando().timestamp() > HORAS_DE_ATRASO * 3600
+        if atrasada == bool(self.estado.get("atraso")):
+            return
+        self.estado["atraso"] = atrasada
+        self.guardar()
+        dono = (await self.bot.application_info()).owner
+        foto = int(self.bot.dados.quando().timestamp())
+        texto = (f"⚠️ Goblinomics: sem foto nova da casa de leilões desde <t:{foto}:f>. A coleta pode estar parada."
+                 if atrasada else f"✅ Goblinomics: a coleta voltou. Foto nova de <t:{foto}:f>.")
+        try:
+            await (await self.bot.fetch_user(dono.id)).send(texto)
+            log.info("dono avisado: coleta %s", "parada" if atrasada else "de volta")
+        except discord.HTTPException:
+            log.warning("não consegui avisar o dono em privado (mensagens diretas fechadas?)")
+
     async def mudar_de_canal(self, canal_id):
         """O painel passa a morar neste canal; o do canal antigo é apagado."""
         antigo = dict(self.estado)
-        self.estado = {"canal": canal_id}
+        self.estado = {**{k: v for k, v in antigo.items() if k != "mensagem"}, "canal": canal_id}
         self.guardar()
         if antigo.get("mensagem") and antigo.get("canal") != canal_id:
             try:
@@ -332,12 +416,13 @@ class PainelFixo:
     async def rodar(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            try:
-                await self.conferir()
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                log.exception("falha ao conferir o painel fixo; nova tentativa no próximo ciclo")
+            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir):
+                try:
+                    await tarefa()
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    log.exception("falha em %s; nova tentativa no próximo ciclo", tarefa.__name__)
             await asyncio.sleep(120)
 
 
@@ -393,17 +478,52 @@ class Bot(discord.Client):
             @self.tree.command(name=nome, description=descricao)
             @app_commands.describe(item=rotulo)
             @app_commands.autocomplete(item=sugerir)
+            @app_commands.checks.cooldown(1, SEGUNDOS_ENTRE_COMANDOS)
             async def comando(interacao, item: str):
                 cartoes = await self.cartoes()
                 item_id = cartoes.d.achar(item)
                 if item_id is None:
                     await interacao.response.send_message(f"Não achei nenhum item com “{item[:80]}”.", ephemeral=True)
                     return
-                await interacao.response.send_message(embed=getattr(cartoes, nome)(item_id))
+                cartao = cartoes.montar(nome, item_id)
+                # No canal do painel a resposta é privada: lá só fica a mensagem do painel.
+                if interacao.channel_id == self.painel_fixo.estado.get("canal"):
+                    await interacao.response.send_message(embed=cartao, **resposta_privada(self, nome, item_id))
+                    return
+                cartao.set_footer(text=cartao.footer.text + " · some em 1 hora")
+                await interacao.response.send_message(embed=cartao)
+                self.painel_fixo.anotar_publica(interacao.channel_id, (await interacao.original_response()).id)
 
         consultar("preco", "Preço de um item na casa de leilões", "Nome do item, em português ou inglês")
         consultar("receita", "Custo e lucro de fabricar um item, e quem da guilda faz", "Item fabricado, em português ou inglês")
         consultar("quemfaz", "Quem da guilda sabe fabricar um item", "Item fabricado, em português ou inglês")
+
+        @self.tree.error
+        async def ao_falhar(interacao, erro):
+            if isinstance(erro, app_commands.CommandOnCooldown):
+                texto = f"Calma: espere {erro.retry_after:.0f} s antes de usar esse comando de novo."
+            else:
+                log.exception("erro num comando", exc_info=erro)
+                texto = "Não deu para responder agora. Tente de novo em instantes."
+            if not interacao.response.is_done():
+                await interacao.response.send_message(texto, ephemeral=True)
+
+        @self.tree.command(name="canalpublico", description="Define este canal como o lugar do botão Mostrar no canal")
+        @app_commands.default_permissions(manage_guild=True)
+        @app_commands.guild_only()
+        async def canalpublico(interacao):
+            estado = self.painel_fixo.estado
+            if estado.get("publico") == interacao.channel_id:
+                estado.pop("publico")
+                texto = "Canal público desligado: o botão Mostrar no canal some das respostas."
+            elif estado.get("canal") == interacao.channel_id:
+                texto = "Este é o canal do painel. Escolha outro canal para as respostas públicas."
+            else:
+                estado["publico"] = interacao.channel_id
+                texto = ("Pronto: as respostas privadas ganham o botão Mostrar no canal, que publica aqui por 1 hora. "
+                         "Rode o comando de novo neste canal para desligar.")
+            self.painel_fixo.guardar()
+            await interacao.response.send_message(texto, ephemeral=True)
 
         @self.tree.command(name="painel", description="Fixa neste canal o painel de botões do Goblinomics")
         @app_commands.default_permissions(manage_guild=True)
