@@ -415,7 +415,7 @@ class TesteColetor(unittest.TestCase):
                             "vendas": {"horas": 12, "itens": {"10": 6}}})
         grava("receitas.json", {"profissoes": {"197": "Tailoring"}, "npc": {"12": 500},
                                 "receitas": [[6596, 197, "Bags", "Mageweave Bag", 10, 1.0, [[11, 4], [12, 2]]]]})
-        grava("guildas.json", [{"slug": "g", "nome": "G", "membros": [{"nome": "Glom Gazingo", "receitas": [6596]}]}])
+        grava("guildas.json", [{"slug": "g", "nome": "G", "membros": [{"nome": "Glom Gazingo", "profissoes": [[197, 150]], "receitas": [6596]}]}])
         d = consulta.Dados(pasta)
         self.assertTrue(d.atualizar())
         self.assertFalse(d.atualizar())
@@ -432,6 +432,11 @@ class TesteColetor(unittest.TestCase):
         self.assertEqual(d.ofertas(desconto=0.2), [(10, 8000, 10000, 12.0)])
         # A única receita dá prejuízo, então não há receita lucrativa.
         self.assertEqual(d.lucrativas(), [])
+        # Resumo da guilda: receita nova e marco de habilidade desde o retrato anterior; membro novo não conta.
+        antes = {"Glom Gazingo": {"profissoes": {"197": 140}, "receitas": []}}
+        self.assertEqual(d.novidades(antes), [("Glom Gazingo", [6596], [(197, 150)])])
+        self.assertEqual(d.novidades(d.retrato()), [])
+        self.assertEqual(d.novidades({}), [])
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [

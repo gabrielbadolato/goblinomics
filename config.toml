@@ -49,6 +49,8 @@ bot_token = "segredos/discord_bot_token"
 # que convidar o bot (o Discord pode levar até uma hora para mostrar os comandos).
 bot_servidores = [1567628123250499684]   # Rusty Joints
 url_site = "https://gabrielbadolato.github.io/goblinomics/"
+# Hora (do relógio desta máquina) a partir da qual sai o resumo diário da guilda, no canal escolhido com /canalavisos.
+bot_resumo_hora = 19
 
 # Alertas no Discord: regras em alertas.toml; a URL do webhook fica fora do git.
 alertas = "alertas.toml"

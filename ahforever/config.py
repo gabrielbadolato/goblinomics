@@ -27,6 +27,7 @@ class Config:
     bot_token: Path | None = None
     bot_servidores: tuple = ()
     url_site: str = ""
+    bot_resumo_hora: int = 19
     sobrenome_na_guilda: bool = False
 
 
@@ -56,6 +57,7 @@ def carregar(caminho=None):
         bot_token=base / bruto.get("bot_token", "segredos/discord_bot_token"),
         bot_servidores=list(bruto.get("bot_servidores", [])),
         url_site=bruto.get("url_site", ""),
+        bot_resumo_hora=int(bruto.get("bot_resumo_hora", 19)),
         sobrenome_na_guilda=bool(bruto.get("sobrenome_na_guilda", False)),
     )
 

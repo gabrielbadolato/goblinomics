@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import time
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -111,6 +112,30 @@ class Cartoes:
         cartao.add_field(name="Como ler", inline=False, value=(
             "Itens pelo menos 30% abaixo da média de 7 dias e que vendem 10 ou mais por dia. "
             "A foto tem até uma hora: confira no jogo antes de comprar. Preço baixo também pode ser queda de verdade."))
+        return cartao
+
+    def resumo(self, novidades, promocoes):
+        """O resumo diário da guilda; None quando não há nada a contar."""
+        d, blocos = self.d, []
+        if novidades:
+            linhas = []
+            for nome, novas, marcos in novidades:
+                nomes = [d.nome(d.receita_por_id[r][0]) for r in novas if r in d.receita_por_id]
+                if novas:
+                    mostradas = ", ".join(nomes[:4]) or "receitas novas"
+                    resto = len(novas) - min(len(nomes), 4)
+                    linhas.append(f"• **{nome}** aprendeu: {mostradas}" + (f" e mais {resto}" if resto and nomes else ""))
+                linhas += [f"• **{nome}** chegou a {marco} em {d.profissoes.get(str(prof), 'uma profissão')}"
+                           for prof, marco in marcos]
+            blocos.append("**Novidades da guilda**\n" + "\n".join(linhas))
+        if promocoes:
+            blocos.append("**Receitas que ninguém da guilda sabe, abaixo do preço habitual**\n" + "\n".join(
+                f"• {d.nome(i)}: {moeda(minimo)} (habitual {moeda(habitual)}, {round((minimo - habitual) / habitual * 100)}%)"
+                for i, minimo, habitual in promocoes))
+        if not blocos:
+            return None
+        cartao = self.base("Resumo do dia")
+        cartao.description = "\n\n".join(blocos)[:4000]
         return cartao
 
     def lucrativas(self):
@@ -384,6 +409,33 @@ class PainelFixo:
         self.estado["publicas"] = [m for m in self.estado["publicas"] if m not in vencidas]
         self.guardar()
 
+    async def resumir(self):
+        """Uma vez por dia, a partir da hora do config, publica o resumo da guilda no canal de avisos:
+        o que cada membro aprendeu desde o resumo anterior e as receitas desconhecidas em promoção.
+        Sem novidade não publica nada; o resumo novo substitui o anterior."""
+        canal_id, agora = self.estado.get("avisos"), datetime.now()
+        hoje = agora.strftime("%Y-%m-%d")
+        if not canal_id or agora.hour < self.bot.cfg.bot_resumo_hora or self.estado.get("resumo_dia") == hoje:
+            return
+        d, antes = self.bot.dados, self.estado.get("retrato")
+        cartao = Cartoes(self.bot.cfg, d).resumo(d.novidades(antes) if antes else [], d.receitas_em_promocao())
+        # O dia e o retrato são gravados antes de enviar: uma falha no envio não vira resumo repetido.
+        anterior = self.estado.get("resumo_msg")
+        self.estado.update(resumo_dia=hoje, retrato=d.retrato())
+        self.guardar()
+        if cartao is None:
+            return
+        canal = self.bot.get_partial_messageable(canal_id)
+        if anterior:
+            try:
+                await canal.get_partial_message(anterior).delete()
+            except discord.HTTPException:
+                pass
+        mensagem = await canal.send(embed=cartao)
+        self.estado["resumo_msg"] = mensagem.id
+        self.guardar()
+        log.info("resumo do dia publicado")
+
     async def vigiar(self):
         """Avisa o dono do bot, em privado e uma vez só, quando a coleta para e quando volta."""
         atrasada = time.time() - self.bot.dados.quando().timestamp() > HORAS_DE_ATRASO * 3600
@@ -416,7 +468,7 @@ class PainelFixo:
     async def rodar(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir):
+            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir, self.resumir):
                 try:
                     await tarefa()
                 except asyncio.CancelledError:
@@ -522,6 +574,24 @@ class Bot(discord.Client):
                 estado["publico"] = interacao.channel_id
                 texto = ("Pronto: as respostas privadas ganham o botão Mostrar no canal, que publica aqui por 1 hora. "
                          "Rode o comando de novo neste canal para desligar.")
+            self.painel_fixo.guardar()
+            await interacao.response.send_message(texto, ephemeral=True)
+
+        @self.tree.command(name="canalavisos", description="Define este canal como o do resumo diário da guilda")
+        @app_commands.default_permissions(manage_guild=True)
+        @app_commands.guild_only()
+        async def canalavisos(interacao):
+            estado = self.painel_fixo.estado
+            if estado.get("avisos") == interacao.channel_id:
+                estado.pop("avisos")
+                texto = "Resumo diário desligado."
+            elif estado.get("canal") == interacao.channel_id:
+                texto = "Este é o canal do painel. Escolha outro canal para os avisos."
+            else:
+                estado["avisos"] = interacao.channel_id
+                estado.pop("resumo_dia", None)
+                texto = (f"Pronto: o resumo diário da guilda sai aqui, uma vez por dia, a partir das {self.cfg.bot_resumo_hora}h, "
+                         "e só quando há novidade. O resumo novo substitui o anterior. Rode o comando de novo para desligar.")
             self.painel_fixo.guardar()
             await interacao.response.send_message(texto, ephemeral=True)
 

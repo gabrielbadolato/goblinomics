@@ -11,6 +11,8 @@ from datetime import datetime
 HORAS_PARA_VENDAS = 6
 TAXA = 0.05          # casas de facção; a neutra cobra 15% e não é a casa do bot
 MAX_SUGESTOES = 25   # limite do Discord para o autocompletar
+CLASSE_RECEITA = 9
+MARCOS = (75, 150, 225, 300)   # habilidades que valem um aviso
 
 
 def _sem_acento(texto):
@@ -72,11 +74,13 @@ class Dados:
         self.receitas = {}
         for rid, prof_id, _, nome, item_id, feitos, reagentes in receitas["receitas"]:
             self.receitas.setdefault(item_id, []).append((rid, prof_id, nome, feitos, reagentes))
-        self.quem = {}
+        self.receita_por_id = {r[0]: (item_id, r[2], r[1]) for item_id, rs in self.receitas.items() for r in rs}
+        self.quem, self.membros = {}, {}
         for guilda in self._ler("guildas.json", []):
             if guilda.get("avulsos"):
                 continue
             for membro in guilda["membros"]:
+                self.membros[membro["nome"]] = membro
                 for rid in membro["receitas"]:
                     self.quem.setdefault(rid, []).append(membro["nome"])
         # Busca: nome nas duas línguas, sem acento; quem está à venda vem primeiro.
@@ -166,6 +170,42 @@ class Dados:
                     achados.append((r["lucro"] * por_dia / r["feitos"], item_id, r))
         achados.sort(key=lambda a: -a[0])
         return [(item_id, r) for _, item_id, r in achados[:limite]]
+
+    def retrato(self):
+        """O que cada membro da guilda sabe agora, para comparar no resumo do dia seguinte."""
+        return {nome: {"profissoes": {str(p): pts for p, pts in m["profissoes"]}, "receitas": m["receitas"]}
+                for nome, m in self.membros.items()}
+
+    def novidades(self, antes):
+        """Desde o retrato anterior: (membro, receitas novas, [(profissão, marco alcançado)]).
+        Membro que não estava no retrato não conta: tudo dele pareceria novo."""
+        saida = []
+        for nome, agora in self.retrato().items():
+            velho = antes.get(nome)
+            if velho is None:
+                continue
+            novas = sorted(set(agora["receitas"]) - set(velho["receitas"]))
+            marcos = [(int(prof), max(m for m in MARCOS if m <= pts)) for prof, pts in agora["profissoes"].items()
+                      if any(velho["profissoes"].get(prof, 0) < m <= pts for m in MARCOS)]
+            if novas or marcos:
+                saida.append((nome, novas, marcos))
+        return saida
+
+    def receitas_em_promocao(self, limite=5, desconto=0.3):
+        """Itens de receita (Pattern: X, Plans: X…) abaixo do habitual que ensinam algo que ninguém da
+        guilda sabe: (item, menor preço, habitual). A ligação com a receita é pelo nome, depois dos dois pontos."""
+        # Só profissões que alguém da guilda tem: receita de profissão que ninguém pratica é ruído.
+        praticadas = {prof for m in self.membros.values() for prof, _ in m["profissoes"]}
+        por_nome = {nome: rid for rid, (_, nome, prof) in self.receita_por_id.items() if prof in praticadas}
+        achados = []
+        for item_id, (minimo, _, _) in self.precos.items():
+            item, habitual = self.itens.get(item_id), self.habituais.get(item_id)
+            if not item or item[4] != CLASSE_RECEITA or ": " not in item[0] or not minimo or not habitual:
+                continue
+            rid = por_nome.get(item[0].split(": ", 1)[1])
+            if rid is not None and rid not in self.quem and minimo <= habitual * (1 - desconto):
+                achados.append((item_id, minimo, habitual))
+        return sorted(achados, key=lambda a: a[1] / a[2])[:limite]
 
     def quando(self):
         """Hora da foto, no fuso da máquina."""
