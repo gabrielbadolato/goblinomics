@@ -36,6 +36,9 @@ pasta_pages = ".pages"
 # Guildas mostradas na aba Profissões (quem fabrica o quê). O nome vai como no endereço da API:
 # minúsculas, com hífen no lugar dos espaços. Relidas a cada 12 h.
 guildas = ["rusty-joints"]
+# Personagens fora dessas guildas, um por um, como "nome-sobrenome" em minúsculas.
+# Aparecem no mesmo campo, no grupo "Outros personagens".
+personagens = []
 # true = nome e sobrenome do personagem; false = só o primeiro nome.
 sobrenome_na_guilda = true
 

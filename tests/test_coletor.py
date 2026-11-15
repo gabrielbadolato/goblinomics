@@ -395,6 +395,11 @@ class TesteColetor(unittest.TestCase):
                                          "receitas": [1814, 2907]}])
         self.assertEqual((g["nome"], g["faccao"], g["ruleset"]), ("Rusty Joints", "HORDE", 2))
         self.assertIsNone(guilda.ler(api, "nao-existe"))
+        # Personagem sem guilda: lido pelo próprio endereço; o que não existe fica de fora.
+        api.rotas[("/profile/wow/character/glom-gazingo", ns)] = {"name": "Glom", "surname": "Gazingo", "level": 38}
+        avulsos = guilda.ler_avulsos(api, ["glom-gazingo", "ninguem-x"], sobrenome=True)
+        self.assertEqual([m["nome"] for m in avulsos["membros"]], ["Glom Gazingo"])
+        self.assertEqual((avulsos["slug"], avulsos["pedidos"]), ("avulsos", ["glom-gazingo", "ninguem-x"]))
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [

@@ -650,7 +650,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Caminho de profissão, melhor hora e favoritos</h3>
     <ul>
       <li><strong>Caminho mais barato</strong> (aba Profissões, campo "Subir até"): a cada ponto de habilidade, escolhemos a receita com o menor custo de material dividido pela chance de dar ponto. A chance é 100% enquanto a receita é laranja e cai em linha reta da amarela até a cinza. O jogo não informa em que nível a receita é aprendida: supomos uma faixa laranja do tamanho da amarela mais a verde, e por isso cada passo precisa ser conferido.</li>
-      <li><strong>Guilda</strong> (aba Profissões, campo "Guilda"): duas vezes por dia lemos da Blizzard os membros da guilda, a habilidade de cada um nas profissões e as receitas que conhecem. Personagens de nível muito baixo não aparecem na consulta. Escolhendo um personagem, a lista mostra só as receitas dele e usa a habilidade dele.</li>
+      <li><strong>Guilda</strong> (aba Profissões, campo "Guilda"): duas vezes por dia lemos da Blizzard os membros da guilda, a habilidade de cada um nas profissões e as receitas que conhecem. Personagens sem guilda entram a pedido, no grupo "Outros personagens". Personagens de nível muito baixo não aparecem na consulta. Escolhendo um personagem, a lista mostra só as receitas dele e usa a habilidade dele.</li>
       <li><strong>Melhor hora</strong> (no histórico de cada item): em cada dia, comparamos o menor preço de cada hora com a média daquele dia, e tiramos a média entre os dias, suavizada em 3 horas. Precisa de 3 dias completos; por dia da semana, de 14 dias.</li>
       <li><strong>Favoritos desde a última visita</strong> (aba Resumo): o navegador guarda o preço dos seus favoritos a cada visita e compara com a visita anterior, feita pelo menos 2 horas antes. Só aparecem mudanças de 5% ou mais.</li>
     </ul>
@@ -717,7 +717,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <h3>Profession path, best time and favorites</h3>
     <ul>
       <li><strong>Cheapest path</strong> (Professions tab, "Level up to" field): at each skill point we pick the recipe with the lowest material cost divided by the chance of a skill-up. The chance is 100% while the recipe is orange and drops in a straight line from yellow to grey. The game does not say at which level a recipe is learned: we assume an orange range as long as the yellow plus green one, so each step needs checking.</li>
-      <li><strong>Guild</strong> (Professions tab, "Guild" field): twice a day we read from Blizzard the guild members, each one's profession skill and the recipes they know. Very low level characters do not show up. Picking a character shows only their recipes and uses their skill.</li>
+      <li><strong>Guild</strong> (Professions tab, "Guild" field): twice a day we read from Blizzard the guild members, each one's profession skill and the recipes they know. Characters without a guild are added on request, under "Other characters". Very low level characters do not show up. Picking a character shows only their recipes and uses their skill.</li>
       <li><strong>Best time</strong> (in each item's history): for each day we compare the lowest price at each hour with that day's average, then average across days, smoothed over 3 hours. It needs 3 full days; by weekday, 14 days.</li>
       <li><strong>Favorites since your last visit</strong> (Summary tab): the browser stores your favorites' prices on each visit and compares them with the previous visit, at least 2 hours earlier. Only changes of 5% or more are shown.</li>
     </ul>
@@ -1430,7 +1430,9 @@ const guildaAtiva = () => guildas?.find(g => g.slug === escolhaDeGuilda().slug) 
 const membroAtivo = () => { const e = escolhaDeGuilda(); return e.tipo === "m" ? guildaAtiva()?.membros.find(m => m.nome === e.nome) : undefined; };
 const pontosDe = (m, profId) => m?.profissoes.find(p => p[0] === profId)?.[1];
 const habilidadeAtual = profId => pontosDe(membroAtivo(), profId) ?? prefs.habilidade[profId];
-const fabricantes = rid => guildaAtiva()?.quem.get(rid) || [];
+// O grupo "avulsos" são personagens sem guilda: dá para escolher um, mas o selo "guilda:" não é deles.
+const guildaDosSelos = () => { const g = guildaAtiva(); return g?.avulsos ? guildas.find(x => !x.avulsos) : g; };
+const fabricantes = rid => guildaDosSelos()?.quem.get(rid) || [];
 function passaGuilda(l) {
   const {tipo} = escolhaDeGuilda(), m = membroAtivo();
   if (!tipo || !guildaAtiva()) return true;
@@ -1450,7 +1452,8 @@ function montarGuilda() {
   if (!guildas?.length) return;
   let h = `<option value="">${L("Todas as receitas", "All recipes")}</option>`;
   for (const g of guildas) {
-    h += `<optgroup label="${esc(g.nome)}"><option value="g:${esc(g.slug)}">${L("O que a guilda fabrica", "What the guild can craft")}</option>
+    h += g.avulsos ? `<optgroup label="${L("Outros personagens", "Other characters")}">`
+      : `<optgroup label="${esc(g.nome)}"><option value="g:${esc(g.slug)}">${L("O que a guilda fabrica", "What the guild can craft")}</option>
       <option value="n:${esc(g.slug)}">${L("O que ninguém sabe ainda", "What nobody knows yet")}</option>`;
     // Só quem tem a profissão aberta entra na lista.
     for (const m of g.membros) {

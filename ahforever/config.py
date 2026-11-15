@@ -23,6 +23,7 @@ class Config:
     alertas: Path | None = None
     webhook_discord: Path | None = None
     guildas: tuple = ()
+    personagens: tuple = ()
     sobrenome_na_guilda: bool = False
 
 
@@ -48,6 +49,7 @@ def carregar(caminho=None):
         alertas=base / bruto.get("alertas", "alertas.toml"),
         webhook_discord=base / bruto.get("webhook_discord", "segredos/discord_webhook"),
         guildas=list(bruto.get("guildas", [])),
+        personagens=list(bruto.get("personagens", [])),
         sobrenome_na_guilda=bool(bruto.get("sobrenome_na_guilda", False)),
     )
 
