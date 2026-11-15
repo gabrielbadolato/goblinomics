@@ -1680,7 +1680,7 @@ function calcularReceitas() {
     const horas = recarga(rid), vezes = g && g.vdia != null ? Math.min(g.vdia / feitos, horas ? 24 / horas : Infinity) : null;
     // Com os nomes em português, a receita leva o nome do item que produz.
     const exibido = NOMES_PT && catalogo.itens[item]?.[10] ? catalogo.itens[item][0] : nome;
-    return {rid, recarga: horas, profId, categoria: categoria || "", nome: exibido, busca: (exibido + " " + nome).toLowerCase(), item, feitos, partes,
+    return {rid, recarga: horas, profId, categoria: categoria || "", nome: exibido, busca: (exibido + " " + nome + " " + (catalogo.itens[item]?.[10] || "")).toLowerCase(), item, feitos, partes,
       custo: completo ? custo : null, bruto, lucro, margem: lucro != null && custo > 0 ? lucro / custo * 100 : null,
       qtd: g ? g.qtd : 0, vdia: g ? g.vdia : null, verro: g ? g.verro : null, suspeito: g ? g.suspeito : null,
       lucroDia: lucro != null && vezes != null ? Math.round(lucro * vezes) : null};
@@ -2526,13 +2526,16 @@ async function carregarCasa() {
 async function iniciar() {
   [meta, catalogo, bonusJogo] = await Promise.all([json("dados/meta.json"), json("dados/itens.json"),
     json("dados/bonus.json").catch(() => ({bonus: {}, pontos: {}}))]);
-  // Nomes em português: troca o nome no catálogo e guarda o inglês na posição 10, para a busca aceitar os dois.
   $("idioma").textContent = EN ? "PT" : "EN";
   // No celular o botão do topo não cabe; lá a mesma troca fica ao lado de "Como calculamos".
   $("nomes").textContent = $("nomes-m").textContent = L("Itens", "Items") + ": " + (NOMES_PT ? "PT" : "EN");
-  const pt = !EN || NOMES_PT ? await json("dados/nomes-pt.json").catch(() => ({})) : {};
-  if (NOMES_PT)
-    for (const [id, nome] of Object.entries(pt.itens || {})) { const i = catalogo.itens[id]; if (i) { i[10] = i[0]; i[0] = nome; } }
+  // A posição 10 do item guarda o nome na outra língua, para a busca aceitar as duas em qualquer combinação.
+  const pt = await json("dados/nomes-pt.json").catch(() => ({}));
+  for (const [id, nome] of Object.entries(pt.itens || {})) {
+    const i = catalogo.itens[id];
+    if (!i) continue;
+    if (NOMES_PT) { i[10] = i[0]; i[0] = nome; } else i[10] = nome;
+  }
   if (!EN) {
     // Categorias e subcategorias no idioma da página; armas de uma e de duas mãos têm o mesmo nome na API.
     for (const [id, c] of Object.entries(pt.classes || {})) {
