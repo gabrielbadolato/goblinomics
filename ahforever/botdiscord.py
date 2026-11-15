@@ -207,6 +207,7 @@ TITULOS = {"preco": "Preço de qual item?", "receita": "Receita de qual item?", 
 
 
 SEGUNDOS_NO_CANAL = 3600
+SEGUNDOS_NO_PAINEL = 300    # quanto uma mensagem avulsa dura no canal do painel
 SEGUNDOS_DA_PRIVADA = 600   # precisa ficar abaixo dos 15 minutos que o Discord dá para mexer na resposta
 SEGUNDOS_ENTRE_COMANDOS = 8
 
@@ -530,6 +531,21 @@ class PainelFixo:
         self.guardar()
         log.info("resumo do dia publicado")
 
+    async def varrer(self):
+        """O canal do painel fica só com o painel: apaga o que mais aparecer lá, de pessoas ou do bot,
+        depois de alguns minutos. Mensagens fixadas são preservadas. Pedido do dono do servidor."""
+        if not self.estado.get("canal") or not self.estado.get("mensagem"):
+            return
+        canal = self.bot.get_partial_messageable(self.estado["canal"])
+        try:
+            async for mensagem in canal.history(limit=50):
+                velha = time.time() - mensagem.created_at.timestamp() >= SEGUNDOS_NO_PAINEL
+                if mensagem.id != self.estado["mensagem"] and not mensagem.pinned and velha:
+                    await mensagem.delete()
+                    log.info("canal do painel: mensagem avulsa apagada")
+        except discord.Forbidden:
+            log.warning("sem permissão para limpar o canal do painel (ler histórico e gerenciar mensagens)")
+
     async def alertar(self):
         await botpessoal.conferir_alertas(self.bot)
 
@@ -565,7 +581,7 @@ class PainelFixo:
     async def rodar(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir, self.resumir, self.alertar):
+            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir, self.varrer, self.resumir, self.alertar):
                 try:
                     await tarefa()
                 except asyncio.CancelledError:
