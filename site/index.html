@@ -1428,7 +1428,8 @@ const fabricantes = rid => guildaAtiva()?.quem.get(rid) || [];
 function passaGuilda(l) {
   const {tipo} = escolhaDeGuilda(), m = membroAtivo();
   if (!tipo || !guildaAtiva()) return true;
-  if (tipo === "m") return !m || m.conhece.has(l.rid);
+  // Personagem escolhido que não tem esta profissão: a lista fica inteira, como em "Todas as receitas".
+  if (tipo === "m") return !m || pontosDe(m, l.profId) == null || m.conhece.has(l.rid);
   return (fabricantes(l.rid).length > 0) === (tipo === "g");
 }
 function seloGuilda(rid) {
@@ -1445,16 +1446,18 @@ function montarGuilda() {
   for (const g of guildas) {
     h += `<optgroup label="${esc(g.nome)}"><option value="g:${esc(g.slug)}">${L("O que a guilda fabrica", "What the guild can craft")}</option>
       <option value="n:${esc(g.slug)}">${L("O que ninguém sabe ainda", "What nobody knows yet")}</option>`;
+    // Só quem tem a profissão aberta entra na lista.
     for (const m of g.membros) {
       const pontos = pontosDe(m, prof.id);
-      h += `<option value="m:${esc(g.slug)}:${esc(m.nome)}">${esc(m.nome)}${pontos ? ` (${pontos})` : ""}</option>`;
+      if (pontos != null) h += `<option value="m:${esc(g.slug)}:${esc(m.nome)}">${esc(m.nome)} (${pontos})</option>`;
     }
     h += "</optgroup>";
   }
   caixa.innerHTML = h;
   caixa.value = prefs.guilda || "";
-  // A escolha guardada pode ser de um personagem que saiu da guilda.
-  if (caixa.selectedIndex < 0) { caixa.value = ""; prefs.guilda = ""; }
+  // Sem a opção guardada: ou o personagem não tem esta profissão (a escolha volta quando abrir uma
+  // que ele tenha) ou saiu da guilda (a escolha é esquecida).
+  if (caixa.selectedIndex < 0) { caixa.value = ""; if (!membroAtivo()) prefs.guilda = ""; }
   const lido = new Date(guildaAtiva().lido_em).toLocaleString(LOC, {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"});
   caixa.title = L(`Profissões e receitas lidas do jogo em ${lido}. O número é a habilidade do personagem nesta profissão.`,
     `Professions and recipes read from the game on ${lido}. The number is the character's skill in this profession.`);
