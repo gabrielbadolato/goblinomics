@@ -113,6 +113,7 @@ main.sem-lateral #categorias { display: none; }
 #categorias button.sub.ativo { background: linear-gradient(90deg, #b3931f, #7d6614 60%, #4d3f0d); border-color: #000;
   box-shadow: inset 0 0 0 1px rgba(255, 220, 90, .5); }
 #categorias button.slot { margin-left: 28px; font-size: 12px; }
+#categorias img.ic { width: 18px; height: 18px; margin: -3px 7px -3px -3px; border: 1px solid #000; border-radius: 3px; vertical-align: middle; }
 #categorias small { float: right; margin-left: 8px; font: 11px Arial, sans-serif; color: var(--fraco); text-shadow: none; }
 #categorias button.ativo small { color: #fff; }
 #categorias .grupo { padding: 10px 6px 3px; font: 11px Arial, sans-serif; text-transform: uppercase; letter-spacing: .6px; color: var(--fraco); }
@@ -1471,6 +1472,16 @@ function montarGuilda() {
   caixa.title = L(`Profissões e receitas lidas do jogo em ${lido}. O número é a habilidade do personagem nesta profissão.`,
     `Professions and recipes read from the game on ${lido}. The number is the character's skill in this profession.`);
 }
+// Ícones do jogo ao lado das categorias (servidor de imagens do Wowhead, o mesmo dos itens novos).
+// Chaves: id da classe de item, id da profissão, ou os ids negativos das listas de materiais.
+const ICONES_CLASSE = {"": "inv_misc_coin_01", 0: "inv_potion_54", 1: "inv_misc_bag_08", 2: "inv_sword_04", 4: "inv_chest_chain",
+  5: "inv_misc_dust_01", 6: "inv_ammo_arrow_02", 7: "inv_fabric_linen_01", 9: "inv_scroll_03", 11: "inv_misc_quiver_03",
+  12: "inv_misc_note_01", 13: "inv_misc_key_03", 15: "inv_misc_gear_01"};
+const ICONES_PROF = {129: "spell_holy_sealofsacrifice", 164: "trade_blacksmithing", 165: "inv_misc_armorkit_17", 171: "trade_alchemy",
+  182: "spell_nature_naturetouchgrow", 185: "inv_misc_food_15", 186: "trade_mining", 197: "trade_tailoring", 202: "trade_engineering",
+  333: "trade_engraving", 356: "trade_fishing", 393: "inv_misc_pelt_wolf_01",
+  [-5]: "inv_fabric_wool_01", [-10]: "spell_fire_fire", [-1]: "inv_gizmo_02", [-11]: "inv_misc_rune_01"};
+const iconeCat = nome => `<img class="ic" alt="" onerror="this.remove()" src="https://wow.zamimg.com/images/wow/icons/medium/${nome || "inv_misc_questionmark"}.jpg">`;
 const porItem = new Map();
 const prof = {id: null, ordem: "lucro", sentido: -1, abertos: new Set(), materiaisAbertos: new Set()};
 // Subcategorias de Trade Goods que cada profissão coleta; ids negativos são listas só de materiais.
@@ -1773,9 +1784,9 @@ function montarProfissoes() {
   const lucrativas = new Map();
   for (const l of todasReceitas) if (l.lucro > 0) lucrativas.set(l.profId, (lucrativas.get(l.profId) || 0) + 1);
   $("categorias").innerHTML = Object.entries(receitas.profissoes).sort((a, b) => a[1].localeCompare(b[1])).map(([id, nome]) =>
-    `<button data-prof="${id}" class="${prof.id === +id ? "ativo" : ""}" title="Receitas com lucro agora">${esc(nome)} <small>${lucrativas.get(+id) || 0}</small></button>`).join("")
+    `<button data-prof="${id}" class="${prof.id === +id ? "ativo" : ""}" title="Receitas com lucro agora">${iconeCat(ICONES_PROF[id])}${esc(nome)} <small>${lucrativas.get(+id) || 0}</small></button>`).join("")
     + `<div class="grupo">Materiais</div>` + SO_MATERIAIS.map(([id, nome, subs]) =>
-    `<button data-prof="${id}" class="${prof.id === id ? "ativo" : ""}">${esc(catalogo.classes[TRADE_GOODS]?.sub[subs[0]] || nome)} <small>${materiaisDe(subs).length}</small></button>`).join("");
+    `<button data-prof="${id}" class="${prof.id === id ? "ativo" : ""}">${iconeCat(ICONES_PROF[id])}${esc(catalogo.classes[TRADE_GOODS]?.sub[subs[0]] || nome)} <small>${materiaisDe(subs).length}</small></button>`).join("");
 }
 
 function desenharMateriais() {
@@ -2317,10 +2328,10 @@ function montarCategorias() {
     .filter(c => contagem.has(c.id))
     .sort((a, b) => posicao(ORDEM_CLASSES, a.id) - posicao(ORDEM_CLASSES, b.id) || a.nome.localeCompare(b.nome));
   if (contagem.has(SEM_CADASTRO)) classes.push({id: SEM_CADASTRO, nome: "Sem cadastro", sub: {}});
-  let h = `<button data-classe="" class="${estado.classe == null ? "ativo" : ""}">Todos <small>${grupos.length}</small></button>`;
+  let h = `<button data-classe="" class="${estado.classe == null ? "ativo" : ""}">${iconeCat(ICONES_CLASSE[""])}Todos <small>${grupos.length}</small></button>`;
   for (const c of classes) {
     const aberta = estado.classe === c.id;
-    h += `<button data-classe="${c.id}" class="${aberta && estado.sub == null ? "ativo" : ""}">${esc(c.nome)} <small>${contagem.get(c.id)}</small></button>`;
+    h += `<button data-classe="${c.id}" class="${aberta && estado.sub == null ? "ativo" : ""}">${iconeCat(ICONES_CLASSE[c.id])}${esc(c.nome)} <small>${contagem.get(c.id)}</small></button>`;
     if (!aberta) continue;
     const subs = Object.entries(c.sub).filter(([s]) => contagem.has(c.id + "/" + s))
       .map(([s, nome]) => [s, EN && c.id === ARMAS && NOMES_ARMAS[s] || nome])
