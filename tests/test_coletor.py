@@ -6,7 +6,7 @@ from pathlib import Path
 
 import zipfile
 
-from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, exportar, guilda, habitual, receitas, vendas, wowhead
+from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, consulta, exportar, guilda, habitual, receitas, vendas, wowhead
 from ahforever.api import Resposta
 from ahforever.config import Config
 from ahforever.resumo import chave_variante, resumir
@@ -400,6 +400,33 @@ class TesteColetor(unittest.TestCase):
         avulsos = guilda.ler_avulsos(api, ["glom-gazingo", "ninguem-x"], sobrenome=True)
         self.assertEqual([m["nome"] for m in avulsos["membros"]], ["Glom Gazingo"])
         self.assertEqual((avulsos["slug"], avulsos["pedidos"]), ("avulsos", ["glom-gazingo", "ninguem-x"]))
+
+    def test_consulta_do_bot_acha_item_nas_duas_linguas_e_faz_a_conta_da_receita(self):
+        pasta = Path(self.tmp.name) / "dados"
+        pasta.mkdir()
+        grava = lambda nome, dados: (pasta / nome).write_text(json.dumps(dados))
+        grava("meta.json", {"casa_padrao": 114, "casas": [{"id": 114, "nome": "Horde Auction House", "arquivo": "casa.json"}]})
+        grava("itens.json", {"itens": {"10": ["Mageweave Bag", "COMMON", 1, 1, 1, 0, "BAG", "x", "forever-us", 2500],
+                                       "11": ["Bolt of Mageweave", "COMMON", 1, 1, 7, 5, "", "x", "forever-us", 100],
+                                       "12": ["Silken Thread", "COMMON", 1, 1, 7, 5, "", "x", "forever-us", 10]}})
+        grava("nomes-pt.json", {"itens": {"10": "Bolsa de Magitrama", "11": "Peça de Magitrama"}})
+        grava("casa.json", {"coletado_em": "2026-11-15T12:00:00Z", "medias": {"10": 10000},
+                            "linhas": [[10, "", 9000, 9100, 3, 3], [10, "b1", 8000, 8200, 2, 2], [11, "", 2500, 2600, 50, 5]],
+                            "vendas": {"horas": 12, "itens": {"10": 6}}})
+        grava("receitas.json", {"profissoes": {"197": "Tailoring"}, "npc": {"12": 500},
+                                "receitas": [[6596, 197, "Bags", "Mageweave Bag", 10, 1.0, [[11, 4], [12, 2]]]]})
+        grava("guildas.json", [{"slug": "g", "nome": "G", "membros": [{"nome": "Glom Gazingo", "receitas": [6596]}]}])
+        d = consulta.Dados(pasta)
+        self.assertTrue(d.atualizar())
+        self.assertFalse(d.atualizar())
+        self.assertEqual(d.buscar("pecá de magi"), [11])
+        self.assertEqual(d.achar("mageweave bag"), 10)
+        self.assertEqual(d.nome(10), "Bolsa de Magitrama (Mageweave Bag)")
+        self.assertEqual(d.preco(10), {"min": 8000, "mercado": 8200, "qtd": 5, "habitual": 10000, "por_dia": 12.0, "npc_paga": 2500})
+        (r,) = d.fabricar(10)
+        # 4 peças a 26s (mercado) + 2 fios a 5s (NPC); venda a 80s menos 5%.
+        self.assertEqual((r["custo"], r["liquido"], r["lucro"], r["quem"]), (11400, 7600, -3800, ["Glom Gazingo"]))
+        self.assertEqual([consulta.moeda(v) for v in (None, 5, 1234, 123456)], ["–", "5c", "12s 34c", "12g 34s"])
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [

@@ -42,6 +42,14 @@ personagens = []
 # true = nome e sobrenome do personagem; false = só o primeiro nome.
 sobrenome_na_guilda = true
 
+# Bot do Discord (python -m ahforever.botdiscord): /preco, /receita e /quemfaz.
+# O token fica fora do git, sozinho no arquivo abaixo (permissão 600).
+bot_token = "segredos/discord_bot_token"
+# Números dos servidores do Discord onde os comandos aparecem na hora. Vazio = todo servidor
+# que convidar o bot (o Discord pode levar até uma hora para mostrar os comandos).
+bot_servidores = []
+url_site = "https://gabrielbadolato.github.io/goblinomics/"
+
 # Alertas no Discord: regras em alertas.toml; a URL do webhook fica fora do git.
 alertas = "alertas.toml"
 webhook_discord = "segredos/discord_webhook"

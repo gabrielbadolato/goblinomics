@@ -1,0 +1,23 @@
+# Bot do Discord do Goblinomics, como serviço do usuário (sem sudo), separado do bot dos servidores.
+#
+# Instalar (uma vez):
+#   python3 -m venv ~/repos/wow-forever-ah/.venv-bot
+#   ~/repos/wow-forever-ah/.venv-bot/bin/pip install discord.py
+#   gravar o token em ~/repos/wow-forever-ah/segredos/discord_bot_token (chmod 600)
+#   cp servico/goblinomics-bot.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#   systemctl --user enable --now goblinomics-bot.service
+# Desligar: systemctl --user disable --now goblinomics-bot.service
+[Unit]
+Description=Bot do Discord do Goblinomics (preço, receita, quem faz)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/repos/wow-forever-ah
+ExecStart=%h/repos/wow-forever-ah/.venv-bot/bin/python -m ahforever.botdiscord
+Restart=on-failure
+RestartSec=30
+Nice=10
+
+[Install]
+WantedBy=default.target

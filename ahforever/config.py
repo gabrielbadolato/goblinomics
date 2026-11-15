@@ -24,6 +24,9 @@ class Config:
     webhook_discord: Path | None = None
     guildas: tuple = ()
     personagens: tuple = ()
+    bot_token: Path | None = None
+    bot_servidores: tuple = ()
+    url_site: str = ""
     sobrenome_na_guilda: bool = False
 
 
@@ -50,6 +53,9 @@ def carregar(caminho=None):
         webhook_discord=base / bruto.get("webhook_discord", "segredos/discord_webhook"),
         guildas=list(bruto.get("guildas", [])),
         personagens=list(bruto.get("personagens", [])),
+        bot_token=base / bruto.get("bot_token", "segredos/discord_bot_token"),
+        bot_servidores=list(bruto.get("bot_servidores", [])),
+        url_site=bruto.get("url_site", ""),
         sobrenome_na_guilda=bool(bruto.get("sobrenome_na_guilda", False)),
     )
 
