@@ -38,15 +38,22 @@ def _variacao(atual, habitual):
     return f"{'📈' if d > 0 else '📉' if d < 0 else '➖'} {'+' if d > 0 else '−' if d < 0 else ''}{abs(d)}%"
 
 
+# Símbolos das moedas. Começam com círculos comuns; ao ligar, o bot troca pelos emojis do
+# próprio aplicativo (moeda_ouro, moeda_prata, moeda_cobre: os ícones do jogo, em servico/moedas).
+MOEDAS = {"ouro": "🟡", "prata": "⚪", "cobre": "🟤"}
+
+
 def moedas(cobre):
-    """Preço com as três moedas do jogo: 12🟡 34⚪, ou 5⚪ 18🟤 quando não chega a 1 de ouro."""
+    """Preço com as moedas do jogo: ouro e prata, ou prata e cobre quando não chega a 1 de ouro."""
     if cobre is None:
         return "–"
     cobre = round(cobre)
     ouro, prata, resto = cobre // 10000, cobre // 100 % 100, cobre % 100
     if ouro:
-        return f"{_numero(ouro)}🟡" + (f" {prata}⚪" if prata else "")
-    return (f"{prata}⚪ " if prata else "") + f"{resto}🟤" if resto or not prata else f"{prata}⚪"
+        partes = [f"{_numero(ouro)}{MOEDAS['ouro']}"] + ([f"{prata}{MOEDAS['prata']}"] if prata else [])
+    else:
+        partes = ([f"{prata}{MOEDAS['prata']}"] if prata else []) + ([f"{resto}{MOEDAS['cobre']}"] if resto or not prata else [])
+    return " ".join(partes)
 
 
 caber = botpessoal.caber
@@ -558,6 +565,12 @@ class Bot(discord.Client):
 
     async def setup_hook(self):
         await asyncio.to_thread(self.dados.atualizar)
+        try:
+            for emoji in await self.fetch_application_emojis():
+                if emoji.name.startswith("moeda_") and emoji.name[6:] in MOEDAS:
+                    MOEDAS[emoji.name[6:]] = str(emoji)
+        except Exception as e:
+            log.warning("sem os emojis das moedas, ficam os círculos: %s", e)
         self.add_view(Painel(self))
         self.painel_fixo = PainelFixo(self, self.cfg.banco.parent / "painel_bot.json")
         self.guardado = botpessoal.Guardado(self.cfg.banco.parent / "bot_guilda.json")
