@@ -36,8 +36,8 @@ pasta_pages = ".pages"
 # Guildas mostradas na aba Profissões (quem fabrica o quê). O nome vai como no endereço da API:
 # minúsculas, com hífen no lugar dos espaços. Relidas a cada 12 h.
 guildas = ["rusty-joints"]
-# O site é público: por padrão só o primeiro nome de cada personagem aparece.
-sobrenome_na_guilda = false
+# true = nome e sobrenome do personagem; false = só o primeiro nome.
+sobrenome_na_guilda = true
 
 # Alertas no Discord: regras em alertas.toml; a URL do webhook fica fora do git.
 alertas = "alertas.toml"
