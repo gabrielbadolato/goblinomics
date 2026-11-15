@@ -114,6 +114,7 @@ main.sem-lateral #categorias { display: none; }
   box-shadow: inset 0 0 0 1px rgba(255, 220, 90, .5); }
 #categorias button.slot { margin-left: 28px; font-size: 12px; }
 #categorias img.ic { width: 18px; height: 18px; margin: -3px 7px -3px -3px; border: 1px solid #000; border-radius: 3px; vertical-align: middle; }
+#categorias button.sub img.ic { width: 14px; height: 14px; margin: -2px 6px -2px 0; opacity: .9; }
 #categorias small { float: right; margin-left: 8px; font: 11px Arial, sans-serif; color: var(--fraco); text-shadow: none; }
 #categorias button.ativo small { color: #fff; }
 #categorias .grupo { padding: 10px 6px 3px; font: 11px Arial, sans-serif; text-transform: uppercase; letter-spacing: .6px; color: var(--fraco); }
@@ -1481,6 +1482,29 @@ const ICONES_PROF = {129: "spell_holy_sealofsacrifice", 164: "trade_blacksmithin
   182: "spell_nature_naturetouchgrow", 185: "inv_misc_food_15", 186: "trade_mining", 197: "trade_tailoring", 202: "trade_engineering",
   333: "trade_engraving", 356: "trade_fishing", 393: "inv_misc_pelt_wolf_01",
   [-5]: "inv_fabric_wool_01", [-10]: "spell_fire_fire", [-1]: "inv_gizmo_02", [-11]: "inv_misc_rune_01"};
+// Subcategorias ("classe/sub"): ícone menor, e só onde há um que diga algo; as demais ficam sem.
+const ICONES_SUB = {
+  "2/0": "inv_axe_01", "2/1": "inv_axe_09", "2/2": "inv_weapon_bow_05", "2/3": "inv_weapon_rifle_01", "2/4": "inv_mace_01",
+  "2/5": "inv_hammer_05", "2/6": "inv_spear_06", "2/7": "inv_sword_04", "2/8": "inv_sword_17", "2/10": "inv_staff_08",
+  "2/13": "inv_gauntlets_04", "2/14": "inv_misc_wrench_01", "2/15": "inv_weapon_shortblade_01", "2/16": "inv_throwingknife_02",
+  "2/18": "inv_weapon_crossbow_01", "2/19": "inv_wand_01", "2/20": "inv_fishingpole_02",
+  "4/0": "inv_jewelry_ring_03", "4/1": "inv_chest_cloth_21", "4/2": "inv_chest_leather_09", "4/3": "inv_chest_chain_05",
+  "4/4": "inv_chest_plate01", "4/5": "inv_shirt_01", "4/6": "inv_shield_04", "4/7": "inv_relics_libramofhope",
+  "4/8": "inv_relics_idolofhealth", "4/9": "inv_relics_totemofrage",
+  "0/0": "inv_misc_bomb_05", "0/1": "inv_potion_51", "0/2": "inv_potion_23", "0/3": "inv_potion_41", "0/4": "inv_scroll_02",
+  "0/5": "inv_drink_07", "0/7": "inv_misc_bandage_12", "0/14": "inv_gizmo_01",
+  "15/0": "inv_misc_bone_01", "15/1": "inv_misc_dust_02", "15/2": "inv_box_petcarrier_01", "15/3": "inv_holiday_christmas_present_01",
+  "15/5": "ability_mount_ridinghorse",
+  "7/0": "inv_fabric_linen_01", "7/1": "inv_gizmo_02", "7/2": "inv_misc_bomb_05", "7/3": "inv_gizmo_01", "7/5": "inv_fabric_wool_01",
+  "7/6": "inv_misc_leatherscrap_03", "7/7": "inv_ingot_03", "7/8": "inv_misc_food_15", "7/9": "inv_misc_flower_02",
+  "7/10": "spell_fire_fire", "7/11": "inv_misc_rune_01", "7/12": "inv_enchant_dustsoul",
+  "9/0": "inv_misc_book_09", "9/1": "inv_misc_armorkit_17", "9/2": "trade_tailoring", "9/3": "trade_engineering",
+  "9/4": "trade_blacksmithing", "9/5": "inv_misc_food_15", "9/6": "trade_alchemy", "9/7": "spell_holy_sealofsacrifice",
+  "9/8": "trade_engraving", "9/9": "trade_fishing",
+  "1/0": "inv_misc_bag_08", "1/1": "inv_misc_bag_enchantedrunecloth", "1/2": "inv_misc_bag_herbpouch",
+  "1/3": "inv_misc_bag_enchantedmageweave", "1/11": "inv_misc_bag_10",
+  "11/2": "inv_misc_quiver_03", "11/3": "inv_misc_ammo_bullet_01", "6/2": "inv_ammo_arrow_02", "6/3": "inv_ammo_bullet_02"};
+const iconeSub = (classe, sub) => ICONES_SUB[classe + "/" + sub] ? iconeCat(ICONES_SUB[classe + "/" + sub]) : "";
 const iconeCat = nome => `<img class="ic" alt="" onerror="this.remove()" src="https://wow.zamimg.com/images/wow/icons/medium/${nome || "inv_misc_questionmark"}.jpg">`;
 const porItem = new Map();
 const prof = {id: null, ordem: "lucro", sentido: -1, abertos: new Set(), materiaisAbertos: new Set()};
@@ -2339,7 +2363,7 @@ function montarCategorias() {
     if (subs.length < 2) continue;
     for (const [s, nome] of subs) {
       const escolhida = estado.sub === +s;
-      h += `<button data-classe="${c.id}" data-sub="${s}" class="sub ${escolhida && estado.slot == null ? "ativo" : ""}">${esc(nome)} <small>${contagem.get(c.id + "/" + s)}</small></button>`;
+      h += `<button data-classe="${c.id}" data-sub="${s}" class="sub ${escolhida && estado.slot == null ? "ativo" : ""}">${iconeSub(c.id, s)}${esc(nome)} <small>${contagem.get(c.id + "/" + s)}</small></button>`;
       if (!escolhida || c.id !== ARMADURA) continue;
       // Terceiro nível, só em armaduras: o slot (Head, Shoulder, ...).
       const porSlot = new Map();
