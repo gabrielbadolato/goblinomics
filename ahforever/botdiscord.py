@@ -1,7 +1,7 @@
 """Bot do Discord do Goblinomics: consultas de preço, receita e artesãos da guilda.
 
 Separado do bot dos servidores de jogo. Só lê site/dados; não grava nada e não fala com a Blizzard.
-Rodar: python -m ahforever.botdiscord  (precisa do pacote discord.py e do token em segredos/).
+Rodar: python -m ahforever.botdiscord  (precisa do pacote python3-discord e do token em segredos/).
 """
 import asyncio
 import logging
