@@ -229,13 +229,18 @@ class Bot(discord.Client):
             for servidor in self.cfg.bot_servidores:
                 alvo = discord.Object(id=servidor)
                 self.tree.copy_global_to(guild=alvo)
-                await self.tree.sync(guild=alvo)
+                registrados = await self.tree.sync(guild=alvo)
         else:
-            await self.tree.sync()
-        log.info("comandos registrados")
+            registrados = await self.tree.sync()
+        log.info("comandos registrados: %s", ", ".join(sorted(c.name for c in registrados)))
 
     async def on_ready(self):
         log.info("conectado como %s", self.user)
+
+    async def on_interaction(self, interacao):
+        # Só o tipo e o nome do comando ou botão: serve para saber se o pedido chegou até aqui.
+        dados = interacao.data or {}
+        log.info("pedido: %s %s", interacao.type.name, dados.get("name") or dados.get("custom_id") or "")
 
     async def cartoes(self):
         """As respostas sobre a foto mais recente; uma falha na releitura mantém os dados anteriores."""
