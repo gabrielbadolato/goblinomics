@@ -142,6 +142,31 @@ class Dados:
                           "quem": self.quem.get(rid, [])})
         return saida
 
+    def ofertas(self, limite=10, desconto=0.3, vendas_minimas=10, preco_minimo=100):
+        """Itens à venda bem abaixo do preço habitual e que giram: (item, menor preço, habitual, vendas/dia),
+        do maior desconto para o menor."""
+        achados = []
+        for item_id, (minimo, _, _) in self.precos.items():
+            habitual, por_dia = self.habituais.get(item_id), self.por_dia.get(item_id)
+            if (minimo and habitual and habitual >= preco_minimo and por_dia is not None
+                    and por_dia >= vendas_minimas and minimo <= habitual * (1 - desconto)):
+                achados.append((item_id, minimo, habitual, por_dia))
+        return sorted(achados, key=lambda o: o[1] / o[2])[:limite]
+
+    def lucrativas(self, limite=10, so_da_guilda=True, vendas_minimas=1):
+        """Receitas com lucro agora cujo produto vende: (item, receita de fabricar()), do maior lucro
+        por dia (lucro vezes o que o mercado absorve) para o menor."""
+        achados = []
+        for item_id in self.receitas:
+            por_dia = self.por_dia.get(item_id)
+            if por_dia is None or por_dia < vendas_minimas:
+                continue
+            for r in self.fabricar(item_id):
+                if r["lucro"] and r["lucro"] > 0 and (r["quem"] or not so_da_guilda):
+                    achados.append((r["lucro"] * por_dia / r["feitos"], item_id, r))
+        achados.sort(key=lambda a: -a[0])
+        return [(item_id, r) for _, item_id, r in achados[:limite]]
+
     def quando(self):
         """Hora da foto, no fuso da máquina."""
         return datetime.fromisoformat(self.coletado_em.replace("Z", "+00:00")).astimezone()

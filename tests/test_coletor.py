@@ -427,6 +427,11 @@ class TesteColetor(unittest.TestCase):
         # 4 peças a 26s (mercado) + 2 fios a 5s (NPC); venda a 80s menos 5%.
         self.assertEqual((r["custo"], r["liquido"], r["lucro"], r["quem"]), (11400, 7600, -3800, ["Glom Gazingo"]))
         self.assertEqual([consulta.moeda(v) for v in (None, 5, 1234, 123456)], ["–", "5c", "12s 34c", "12g 34s"])
+        # Oferta: 80s contra 1g habitual é 20% de desconto; só entra com o corte em 20%.
+        self.assertEqual(d.ofertas(), [])
+        self.assertEqual(d.ofertas(desconto=0.2), [(10, 8000, 10000, 12.0)])
+        # A única receita dá prejuízo, então não há receita lucrativa.
+        self.assertEqual(d.lucrativas(), [])
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [
