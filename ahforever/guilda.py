@@ -7,6 +7,8 @@ ARQUIVO = "guildas.json"
 # Profissões mudam devagar; uma leitura a cada 12 h basta.
 HORAS = 12
 AVULSOS = "avulsos"
+# Personagens avulsos pedidos pelo bot do Discord (/personagem); somam-se aos do config.toml.
+EXTRAS = "personagens_extra.json"
 
 
 def caminho(cfg):
@@ -68,7 +70,9 @@ def ler_avulsos(api, slugs, sobrenome=False):
 def atualizar(cfg, api, forcar=False):
     """Relê as guildas do config quando a última leitura envelheceu. Devolve se gravou."""
     arquivo = caminho(cfg)
-    if not cfg.guildas and not cfg.personagens:
+    extras = cfg.banco.parent / EXTRAS
+    personagens = list(dict.fromkeys(list(cfg.personagens) + (json.loads(extras.read_text()) if extras.exists() else [])))
+    if not cfg.guildas and not personagens:
         arquivo.unlink(missing_ok=True)
         return False
     if not forcar and arquivo.exists():
@@ -76,7 +80,7 @@ def atualizar(cfg, api, forcar=False):
         fresco = time.time() - arquivo.stat().st_mtime < HORAS * 3600
         pedidos = next((g["pedidos"] for g in antigas if g.get("avulsos")), [])
         if (fresco and [g["slug"] for g in antigas if not g.get("avulsos")] == cfg.guildas
-                and pedidos == cfg.personagens):
+                and pedidos == personagens):
             return False
     guildas = []
     for slug in cfg.guildas:
@@ -86,8 +90,8 @@ def atualizar(cfg, api, forcar=False):
             continue
         print(f"guilda: {g['nome']}, {len(g['membros'])} membros com profissão")
         guildas.append(g)
-    if cfg.personagens:
-        avulsos = ler_avulsos(api, cfg.personagens, cfg.sobrenome_na_guilda)
+    if personagens:
+        avulsos = ler_avulsos(api, personagens, cfg.sobrenome_na_guilda)
         print(f"guilda: {len(avulsos['membros'])} personagens avulsos")
         guildas.append(avulsos)
     temporario = arquivo.with_suffix(".tmp")

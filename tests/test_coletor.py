@@ -437,6 +437,13 @@ class TesteColetor(unittest.TestCase):
         self.assertEqual(d.novidades(antes), [("Glom Gazingo", [6596], [(197, 150)])])
         self.assertEqual(d.novidades(d.retrato()), [])
         self.assertEqual(d.novidades({}), [])
+        # Alerta pessoal: vale quando o menor preço (80s) cruza o alvo.
+        self.assertTrue(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 8000}))
+        self.assertFalse(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 7999}))
+        self.assertTrue(d.alerta_vale({"item": 10, "tipo": "acima", "preco": 8000}))
+        self.assertFalse(d.alerta_vale({"item": 12, "tipo": "abaixo", "preco": 10 ** 9}))   # sem anúncio
+        # "Meu personagem": a única receita dele dá prejuízo.
+        self.assertEqual(d.lucrativas(personagem="Glom Gazingo"), [])
 
     def test_coleta_seguinte_grava_as_vendas_estimadas(self):
         self.api.rotas["/data/wow/ruleset/2/auctions/113"] = {**CASA_113, "auctions": [

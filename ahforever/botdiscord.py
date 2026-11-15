@@ -15,7 +15,7 @@ from datetime import datetime
 import discord
 from discord import app_commands
 
-from . import config, consulta
+from . import botpessoal, config, consulta, guilda
 from .consulta import moeda
 
 log = logging.getLogger("goblinomics-bot")
@@ -41,8 +41,14 @@ def _pct(atual, habitual):
 class Cartoes:
     """As respostas do bot, montadas dos dados; servem aos comandos e ao painel."""
 
-    def __init__(self, cfg, dados):
-        self.cfg, self.d = cfg, dados
+    def __init__(self, cfg, dados, guardado=None):
+        self.cfg, self.d, self.guardado = cfg, dados, guardado
+
+    def consumiveis(self):
+        return botpessoal.cartao_dos_consumiveis(self, self.guardado.lista("consumiveis"))
+
+    def desejos(self):
+        return botpessoal.cartao_dos_desejos(self, self.guardado.lista("desejos"))
 
     def base(self, titulo, item_id=None):
         d = self.d
@@ -245,7 +251,7 @@ class Painel(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         if bot.cfg.url_site:
-            self.add_item(discord.ui.Button(label="Abrir o site", url=bot.cfg.url_site, row=1))
+            self.add_item(discord.ui.Button(label="Abrir o site", url=bot.cfg.url_site, row=3))
 
     @discord.ui.button(label="Preço", emoji="🔎", style=discord.ButtonStyle.primary, custom_id="gbx:preco", row=0)
     async def preco(self, interacao, _):
@@ -269,7 +275,25 @@ class Painel(discord.ui.View):
         await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(),
                                               **resposta_privada(self.bot, "lucrativas"))
 
-    @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=1)
+    @discord.ui.button(label="Consumíveis", emoji="🧪", style=discord.ButtonStyle.secondary, custom_id="gbx:consumiveis", row=1)
+    async def consumiveis(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).consumiveis(),
+                                              **resposta_privada(self.bot, "consumiveis"))
+
+    @discord.ui.button(label="Desejos", emoji="📋", style=discord.ButtonStyle.secondary, custom_id="gbx:desejos", row=1)
+    async def desejos(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).desejos(),
+                                              **resposta_privada(self.bot, "desejos"))
+
+    @discord.ui.button(label="Meu personagem", emoji="🧙", style=discord.ButtonStyle.success, custom_id="gbx:personagem", row=2)
+    async def personagem(self, interacao, _):
+        await botpessoal.abrir_personagem(self.bot, interacao)
+
+    @discord.ui.button(label="Meus alertas", emoji="🔔", style=discord.ButtonStyle.success, custom_id="gbx:alertas", row=2)
+    async def alertas(self, interacao, _):
+        await botpessoal.abrir_alertas(self.bot, interacao)
+
+    @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=3)
     async def ajuda(self, interacao, _):
         cartao = discord.Embed(title="Como usar o Goblinomics", description=INSTRUCOES, color=DOURADO,
                                url=self.bot.cfg.url_site or None)
@@ -285,7 +309,9 @@ INSTRUCOES = (
     "**Botões do painel** (a resposta aparece só para você)\n"
     "🔎 **Preço**, 🛠️ **Receita** e 👥 **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, "
     "em português ou inglês, sem se preocupar com acento. Se vários itens baterem, escolha na lista.\n"
-    "📉 **Ofertas** e 💰 **Lucro da guilda** respondem na hora, sem perguntar nada.\n\n"
+    "📉 **Ofertas**, 💰 **Lucro da guilda**, 🧪 **Consumíveis** e 📋 **Desejos** respondem na hora.\n"
+    "🧙 **Meu personagem**: escolha o seu uma vez e veja quais das suas receitas dão lucro agora.\n"
+    "🔔 **Meus alertas**: escolha um item e um preço-alvo; o bot te avisa em mensagem privada quando chegar lá.\n\n"
     "**Comandos** `/preco`, `/receita` e `/quemfaz`\n"
     "Comece a digitar o item e escolha uma das sugestões. A resposta fica à vista de todos e some em 1 hora. "
     "No canal do painel ela aparece só para você, para o canal ficar limpo.\n\n"
@@ -309,6 +335,10 @@ TEXTO_DO_PAINEL = (
     "👥 **Quem faz**: os artesãos da guilda para um item\n"
     "📉 **Ofertas**: itens bem abaixo do preço habitual\n"
     "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
+    "🧪 **Consumíveis**: custo de hoje dos consumíveis de raide, por pessoa\n"
+    "📋 **Desejos**: o que a guilda está juntando e se está bom para comprar\n"
+    "🧙 **Meu personagem**: quais das suas receitas dão lucro agora\n"
+    "🔔 **Meus alertas**: aviso em privado quando um item chegar ao seu preço\n"
     "❓ **Como usar**: instruções e como ler os números\n\n"
     "Para mostrar um resultado aos outros, use `/preco`, `/receita` ou `/quemfaz` em outro canal.")
 
@@ -436,6 +466,9 @@ class PainelFixo:
         self.guardar()
         log.info("resumo do dia publicado")
 
+    async def alertar(self):
+        await botpessoal.conferir_alertas(self.bot)
+
     async def vigiar(self):
         """Avisa o dono do bot, em privado e uma vez só, quando a coleta para e quando volta."""
         atrasada = time.time() - self.bot.dados.quando().timestamp() > HORAS_DE_ATRASO * 3600
@@ -468,7 +501,7 @@ class PainelFixo:
     async def rodar(self):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
-            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir, self.resumir):
+            for tarefa in (self.bot.cartoes, self.vigiar, self.limpar, self.conferir, self.resumir, self.alertar):
                 try:
                     await tarefa()
                 except asyncio.CancelledError:
@@ -490,6 +523,7 @@ class Bot(discord.Client):
         await asyncio.to_thread(self.dados.atualizar)
         self.add_view(Painel(self))
         self.painel_fixo = PainelFixo(self, self.cfg.banco.parent / "painel_bot.json")
+        self.guardado = botpessoal.Guardado(self.cfg.banco.parent / "bot_guilda.json")
         self._tarefa_do_painel = asyncio.create_task(self.painel_fixo.rodar())
         # Com servidores no config os comandos aparecem na hora; sem eles, valem em todo lugar
         # onde o bot for convidado, e o Discord pode levar até uma hora para mostrar.
@@ -519,7 +553,7 @@ class Bot(discord.Client):
             await asyncio.to_thread(self.dados.atualizar)
         except Exception as e:
             log.warning("não deu para reler os dados: %s", e)
-        return Cartoes(self.cfg, self.dados)
+        return Cartoes(self.cfg, self.dados, getattr(self, "guardado", None))
 
     def _registrar(self):
         async def sugerir(interacao, atual):
@@ -575,6 +609,64 @@ class Bot(discord.Client):
                 texto = ("Pronto: as respostas privadas ganham o botão Mostrar no canal, que publica aqui por 1 hora. "
                          "Rode o comando de novo neste canal para desligar.")
             self.painel_fixo.guardar()
+            await interacao.response.send_message(texto, ephemeral=True)
+
+        def lista_da_guilda(nome, chave, descricao, rotulo_do_valor, ler_valor, cartao):
+            @self.tree.command(name=nome, description=descricao)
+            @app_commands.describe(item="Item, em português ou inglês", valor=rotulo_do_valor,
+                                   remover="Marque para tirar o item da lista")
+            @app_commands.autocomplete(item=sugerir)
+            @app_commands.default_permissions(manage_guild=True)
+            @app_commands.guild_only()
+            async def comando(interacao, item: str, valor: str = "", remover: bool = False):
+                cartoes = await self.cartoes()
+                item_id, lido = cartoes.d.achar(item), ler_valor(valor)
+                if item_id is None:
+                    texto = f"Não achei nenhum item com “{item[:80]}”."
+                elif lido is False:
+                    texto = "Não entendi o valor."
+                else:
+                    resultado = botpessoal.mexer_na_lista(self.guardado.lista(chave), item_id, lido, remover)
+                    self.guardado.guardar()
+                    texto = {"posto": "Incluído.", "trocado": "Atualizado.", "tirado": "Retirado.",
+                             "ausente": "Esse item não estava na lista.",
+                             "cheia": f"A lista já tem {botpessoal.MAX_LISTA} itens."}[resultado]
+                await interacao.response.send_message(texto, embed=getattr(cartoes, cartao)(), ephemeral=True)
+
+        def quantidade(texto):
+            return int(texto) if texto.strip().isdigit() and int(texto) > 0 else 1 if not texto.strip() else False
+
+        def alvo(texto):
+            return None if not texto.strip() else botpessoal.ler_ouro(texto) or False
+
+        lista_da_guilda("consumivel", "consumiveis", "Põe ou tira um item da lista de consumíveis de raide",
+                        "Quantidade por pessoa por raide (padrão 1)", quantidade, "consumiveis")
+        lista_da_guilda("desejo", "desejos", "Põe ou tira um item da lista de desejos da guilda",
+                        "Preço-alvo em ouro (opcional), ex.: 50 ou 30s", alvo, "desejos")
+
+        @self.tree.command(name="personagem", description="Inclui ou tira um personagem de fora da guilda")
+        @app_commands.describe(nome="Nome e sobrenome, como no jogo", remover="Marque para tirar o personagem")
+        @app_commands.default_permissions(manage_guild=True)
+        @app_commands.guild_only()
+        async def personagem(interacao, nome: str, remover: bool = False):
+            slug = "-".join(nome.lower().split())
+            arquivo = self.cfg.banco.parent / guilda.EXTRAS
+            lista = json.loads(arquivo.read_text()) if arquivo.exists() else []
+            if not slug.replace("-", "").isalpha() or len(slug) > 60:
+                texto = "Escreva o nome e o sobrenome do personagem, só com letras. Ex.: Glom Gazingo"
+            elif remover:
+                texto = "Retirado. Ele some do site e do bot na próxima foto nova, em até cerca de uma hora." if slug in lista else "Esse personagem não estava na lista."
+                lista = [s for s in lista if s != slug]
+            elif slug in lista:
+                texto = "Esse personagem já está na lista."
+            elif len(lista) >= 20:
+                texto = "A lista de personagens de fora já tem 20 nomes."
+            else:
+                lista.append(slug)
+                texto = (f"Anotado: `{slug}`. Na próxima foto nova da casa de leilões (até cerca de uma hora) o personagem é lido do jogo e passa a "
+                         "aparecer no site, em Outros personagens, e no botão Meu personagem. Se o nome estiver errado "
+                         "ou ele não tiver profissões, simplesmente não aparece.")
+            arquivo.write_text(json.dumps(lista))
             await interacao.response.send_message(texto, ephemeral=True)
 
         @self.tree.command(name="canalavisos", description="Define este canal como o do resumo diário da guilda")

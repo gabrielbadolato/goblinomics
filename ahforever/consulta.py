@@ -75,8 +75,11 @@ class Dados:
         for rid, prof_id, _, nome, item_id, feitos, reagentes in receitas["receitas"]:
             self.receitas.setdefault(item_id, []).append((rid, prof_id, nome, feitos, reagentes))
         self.receita_por_id = {r[0]: (item_id, r[2], r[1]) for item_id, rs in self.receitas.items() for r in rs}
-        self.quem, self.membros = {}, {}
+        # membros: só os da guilda (contam para "quem faz"); personagens: eles e os avulsos (para "meu personagem").
+        self.quem, self.membros, self.personagens = {}, {}, {}
         for guilda in self._ler("guildas.json", []):
+            for membro in guilda["membros"]:
+                self.personagens[membro["nome"]] = membro
             if guilda.get("avulsos"):
                 continue
             for membro in guilda["membros"]:
@@ -157,19 +160,29 @@ class Dados:
                 achados.append((item_id, minimo, habitual, por_dia))
         return sorted(achados, key=lambda o: o[1] / o[2])[:limite]
 
-    def lucrativas(self, limite=10, so_da_guilda=True, vendas_minimas=1):
+    def lucrativas(self, limite=10, so_da_guilda=True, vendas_minimas=1, personagem=None):
         """Receitas com lucro agora cujo produto vende: (item, receita de fabricar()), do maior lucro
-        por dia (lucro vezes o que o mercado absorve) para o menor."""
+        por dia (lucro vezes o que o mercado absorve) para o menor. Com personagem, só as que ele conhece."""
         achados = []
+        dele = set(self.personagens[personagem]["receitas"]) if personagem else None
         for item_id in self.receitas:
             por_dia = self.por_dia.get(item_id)
             if por_dia is None or por_dia < vendas_minimas:
                 continue
             for r in self.fabricar(item_id):
-                if r["lucro"] and r["lucro"] > 0 and (r["quem"] or not so_da_guilda):
+                if dele is not None and r["rid"] not in dele:
+                    continue
+                if r["lucro"] and r["lucro"] > 0 and (dele is not None or r["quem"] or not so_da_guilda):
                     achados.append((r["lucro"] * por_dia / r["feitos"], item_id, r))
         achados.sort(key=lambda a: -a[0])
         return [(item_id, r) for _, item_id, r in achados[:limite]]
+
+    def alerta_vale(self, alerta):
+        """Se o menor preço de agora satisfaz o alerta ({"item", "tipo": "abaixo"|"acima", "preco"})."""
+        minimo = self.precos.get(alerta["item"], (None,))[0]
+        if minimo is None:
+            return False
+        return minimo <= alerta["preco"] if alerta["tipo"] == "abaixo" else minimo >= alerta["preco"]
 
     def retrato(self):
         """O que cada membro da guilda sabe agora, para comparar no resumo do dia seguinte."""
