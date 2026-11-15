@@ -207,6 +207,7 @@ TITULOS = {"preco": "Preço de qual item?", "receita": "Receita de qual item?", 
 
 
 SEGUNDOS_NO_CANAL = 3600
+SEGUNDOS_DA_PRIVADA = 600   # precisa ficar abaixo dos 15 minutos que o Discord dá para mexer na resposta
 SEGUNDOS_ENTRE_COMANDOS = 8
 
 
@@ -366,7 +367,7 @@ INSTRUCOES = (
      "nova e avisa em mensagem privada, uma vez por cruzamento. Precisa das mensagens diretas abertas para membros "
      "do servidor."),
     ("📣 Privado ou à vista de todos",
-     "Tudo que sai dos botões aparece só para você. Para mostrar um resultado aos outros, use o botão "
+     "Tudo que sai dos botões aparece só para você e some sozinho em 10 minutos. Para mostrar um resultado aos outros, use o botão "
      "**Mostrar no canal** que vem embaixo da resposta, ou os comandos `/preco`, `/receita` e `/quemfaz` em outro canal. "
      "O que é publicado some sozinho em 1 hora. O **resumo do dia** sai uma vez por dia no canal de avisos, só "
      "quando há novidade."),
@@ -580,6 +581,7 @@ class Bot(discord.Client):
         self.cfg = cfg
         self.dados = consulta.Dados(cfg.pasta_site / "dados", cfg.casa_padrao)
         self.tree = app_commands.CommandTree(self)
+        self._sumicos = set()
         self._registrar()
 
     async def setup_hook(self):
@@ -615,6 +617,22 @@ class Bot(discord.Client):
         # Só o tipo e o nome do comando ou botão: serve para saber se o pedido chegou até aqui.
         dados = interacao.data or {}
         log.info("pedido: %s %s", interacao.type.name, dados.get("name") or dados.get("custom_id") or "")
+        if interacao.channel_id == self.painel_fixo.estado.get("canal"):
+            tarefa = asyncio.create_task(self._sumir(interacao))
+            self._sumicos.add(tarefa)
+            tarefa.add_done_callback(self._sumicos.discard)
+
+    async def _sumir(self, interacao):
+        """No canal do painel as respostas são privadas, mas ficam na tela de quem pediu até a pessoa
+        dispensar. Aqui elas são apagadas sozinhas depois de alguns minutos. Só apaga resposta privada:
+        o painel e qualquer mensagem pública ficam de fora."""
+        await asyncio.sleep(SEGUNDOS_DA_PRIVADA)
+        try:
+            mensagem = await interacao.original_response()
+            if mensagem.flags.ephemeral and mensagem.id != self.painel_fixo.estado.get("mensagem"):
+                await interacao.delete_original_response()
+        except discord.HTTPException:
+            pass   # já foi dispensada, era só uma janela de pergunta, ou o prazo do Discord (15 min) passou
 
     async def cartoes(self):
         """As respostas sobre a foto mais recente; uma falha na releitura mantém os dados anteriores."""
