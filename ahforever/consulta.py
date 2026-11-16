@@ -71,6 +71,8 @@ class Dados:
         # Profissões em português quando há tradução, como no site.
         self.profissoes = {**receitas["profissoes"], **(self._ler("nomes-pt.json", {}).get("profissoes") or {})}
         self.npc = {int(i): v for i, v in receitas["npc"].items()}
+        # Item fabricado -> itens que ensinam a receita dele: [[item da receita, habilidade exigida], …].
+        self.ensina = {int(i): v for i, v in (receitas.get("ensina") or {}).items()}
         self.receitas = {}
         for rid, prof_id, _, nome, item_id, feitos, reagentes in receitas["receitas"]:
             self.receitas.setdefault(item_id, []).append((rid, prof_id, nome, feitos, reagentes))
@@ -144,6 +146,7 @@ class Dados:
             custo = sum(m[1] * m[2] for m in materiais) if completo else None
             liquido = round(venda * feitos * (1 - TAXA)) if venda is not None else None
             saida.append({"rid": rid, "profissao": self.profissoes.get(str(prof_id), "?"), "nome": nome,
+                          "aprender": self.aprender(item_id),
                           "feitos": feitos, "materiais": materiais, "custo": custo, "liquido": liquido,
                           "lucro": liquido - custo if custo is not None and liquido is not None else None,
                           "quem": self.quem.get(rid, [])})
@@ -204,20 +207,29 @@ class Dados:
                 saida.append((nome, novas, marcos))
         return saida
 
+    def aprender(self, item_id):
+        """Como se aprende a fabricar o item: uma entrada por item de receita conhecido, com o preço no
+        leilão agora. Lista vazia = o item da receita nunca apareceu no leilão."""
+        saida = []
+        for receita_item, nivel in self.ensina.get(item_id, []):
+            minimo, _, qtd = self.precos.get(receita_item, (None, None, 0))
+            saida.append({"item": receita_item, "nivel": nivel, "min": minimo, "qtd": qtd,
+                          "habitual": self.habituais.get(receita_item)})
+        return saida
+
     def receitas_em_promocao(self, limite=5, desconto=0.3):
-        """Itens de receita (Pattern: X, Plans: X…) abaixo do habitual que ensinam algo que ninguém da
-        guilda sabe: (item, menor preço, habitual). A ligação com a receita é pelo nome, depois dos dois pontos."""
-        # Só profissões que alguém da guilda tem: receita de profissão que ninguém pratica é ruído.
+        """Itens de receita abaixo do habitual que ensinam algo que ninguém da guilda sabe, de profissão
+        que alguém da guilda pratica: (item da receita, menor preço, habitual)."""
         praticadas = {prof for m in self.membros.values() for prof, _ in m["profissoes"]}
-        por_nome = {nome: rid for rid, (_, nome, prof) in self.receita_por_id.items() if prof in praticadas}
         achados = []
-        for item_id, (minimo, _, _) in self.precos.items():
-            item, habitual = self.itens.get(item_id), self.habituais.get(item_id)
-            if not item or item[4] != CLASSE_RECEITA or ": " not in item[0] or not minimo or not habitual:
+        for feito, itens in self.ensina.items():
+            receitas = self.receitas.get(feito, [])
+            if not receitas or any(r[0] in self.quem for r in receitas) or not any(r[1] in praticadas for r in receitas):
                 continue
-            rid = por_nome.get(item[0].split(": ", 1)[1])
-            if rid is not None and rid not in self.quem and minimo <= habitual * (1 - desconto):
-                achados.append((item_id, minimo, habitual))
+            for receita_item, _ in itens:
+                minimo, habitual = self.precos.get(receita_item, (None,))[0], self.habituais.get(receita_item)
+                if minimo and habitual and minimo <= habitual * (1 - desconto):
+                    achados.append((receita_item, minimo, habitual))
         return sorted(achados, key=lambda a: a[1] / a[2])[:limite]
 
     def quando(self):

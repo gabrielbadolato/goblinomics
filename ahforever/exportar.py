@@ -169,7 +169,22 @@ def _receitas(con):
         # Alguns (frascos) são vendidos em lotes: o preço da API é o do lote.
         if item.get("purchase_price"):
             npc[item_id] = round(item["purchase_price"] / (item.get("purchase_quantity") or 1))
-    return {"profissoes": profissoes, "receitas": receitas, "npc": npc}
+    return {"profissoes": profissoes, "receitas": receitas, "npc": npc, "ensina": _ensina(con)}
+
+
+def _ensina(con):
+    """Itens que ensinam uma receita (Pattern: X, Recipe: X…), pelo que a própria API diz de cada um:
+    {item fabricado: [[item da receita, habilidade exigida ou None], …]}. Receita sem item aqui é a que
+    nunca apareceu no leilão: em geral ensinada por instrutor, ou presa a quem a pegou."""
+    ensina = {}
+    for item_id, bruto in con.execute(
+            "SELECT item_id, bruto FROM itens WHERE classe_id = 9 AND bruto IS NOT NULL ORDER BY item_id"):
+        previa = json.loads(bruto).get("preview_item") or {}
+        feito = (((previa.get("recipe") or {}).get("item") or {}).get("item") or {}).get("id")
+        if feito:
+            nivel = ((previa.get("requirements") or {}).get("skill") or {}).get("level")
+            ensina.setdefault(feito, []).append([item_id, nivel])
+    return ensina
 
 
 def _vendas(con, ruleset_id, casa_id, agora, habituais):

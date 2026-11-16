@@ -137,11 +137,26 @@ class Cartoes:
             if r["lucro"] is not None:
                 fecho.append(f"{'✅ Lucro' if r['lucro'] >= 0 else '❌ Prejuízo'} **{moedas(abs(r['lucro']))}**")
             fecho.append("👥 " + (", ".join(r["quem"]) if r["quem"] else "ninguém da guilda sabe ainda"))
+            fecho += self.como_aprender(r)
             titulo = "🛠️ " + r["profissao"] + (f" · faz {r['feitos']:g} por vez" if r["feitos"] != 1 else "")
             cartao.add_field(name=titulo, inline=False,
                              value=caber(materiais, 1000 - len("\n".join(fecho))) + "\n" + "\n".join(fecho))
         cartao.set_footer(text=cartao.footer.text + " · conta simples; a do site é mais completa")
         return cartao
+
+    def como_aprender(self, r):
+        """Linhas sobre como se aprende a receita: o item que a ensina, com o preço no leilão, ou o aviso
+        de que esse item nunca apareceu no leilão (em geral, receita de instrutor)."""
+        if not r["aprender"]:
+            return ["📜 Receita de instrutor ou não negociável: nunca apareceu no leilão"]
+        linhas = []
+        for a in r["aprender"]:
+            exige = f"　exige {a['nivel']}" if a["nivel"] else ""
+            preco = (f"no leilão por **{moedas(a['min'])}**" + (f" {_variacao(a['min'], a['habitual'])}" if a["habitual"] else "")
+                     if a["min"] is not None else "sem anúncio no leilão agora" +
+                     (f" (habitual {moedas(a['habitual'])})" if a["habitual"] else ""))
+            linhas.append(f"📜 {self.elo(a['item'])}\n　　{preco}{exige}")
+        return linhas
 
     def quemfaz(self, item_id):
         d, receitas = self.d, self.d.fabricar(item_id)
@@ -380,6 +395,8 @@ INSTRUCOES = (
      "• **Lucro**: venda pelo menor preço menos a taxa de 5%, menos os materiais ao preço de agora. É a conta simples; "
      "a do site é mais completa.\n"
      "• **👥 Na guilda**: quem sabe fabricar, lido do jogo duas vezes por dia.\n"
+     "• **📜 Receita**: o item que ensina a fabricar e quanto custa no leilão agora. Sem item, é receita de "
+     "instrutor ou que não se negocia; a página do Wowhead diz onde conseguir.\n"
      "• A **cor** do cartão é a raridade do item."),
     ("⚠️ Limites",
      "• A Blizzard só atualiza os preços de hora em hora: confira no jogo antes de comprar ou vender.\n"

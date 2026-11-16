@@ -243,10 +243,15 @@ class TesteColetor(unittest.TestCase):
         # Frasco vendido por NPC em lote de 5: o preço exportado é o da unidade.
         con.execute("INSERT INTO itens (item_id, fonte, consultado_em, bruto) VALUES (3371, 'x', 'x', ?)",
                     (json.dumps({"purchase_price": 20, "purchase_quantity": 5}),))
+        # Item de receita: a API diz o que ele ensina a fabricar e a habilidade que exige.
+        con.execute("INSERT INTO itens (item_id, fonte, consultado_em, classe_id, bruto) VALUES (900, 'x', 'x', 9, ?)",
+                    (json.dumps({"preview_item": {"recipe": {"item": {"item": {"id": 118}}},
+                                                  "requirements": {"skill": {"level": 55}}}}),))
         self.assertEqual(exportar._receitas(con), {
             "profissoes": {171: "Alchemy"},
             "receitas": [[1, 171, "Potions", "Minor Healing Potion", 118, 1.0, [[3371, 1], [2447, 2]]]],
             "npc": {3371: 4},
+            "ensina": {118: [[900, 55]]},
         })
         # Os itens das receitas entram na fila do catálogo mesmo sem nunca terem aparecido no leilão.
         self.assertEqual(catalogo.pendentes(con, datetime.now(timezone.utc)), [118, 2447])
@@ -413,7 +418,7 @@ class TesteColetor(unittest.TestCase):
         grava("casa.json", {"coletado_em": "2026-11-15T12:00:00Z", "medias": {"10": 10000},
                             "linhas": [[10, "", 9000, 9100, 3, 3], [10, "b1", 8000, 8200, 2, 2], [11, "", 2500, 2600, 50, 5]],
                             "vendas": {"horas": 12, "itens": {"10": 6}}})
-        grava("receitas.json", {"profissoes": {"197": "Tailoring"}, "npc": {"12": 500},
+        grava("receitas.json", {"profissoes": {"197": "Tailoring"}, "npc": {"12": 500}, "ensina": {"10": [[11, 225]]},
                                 "receitas": [[6596, 197, "Bags", "Mageweave Bag", 10, 1.0, [[11, 4], [12, 2]]]]})
         grava("guildas.json", [{"slug": "g", "nome": "G", "membros": [{"nome": "Glom Gazingo", "profissoes": [[197, 150]], "receitas": [6596]}]}])
         d = consulta.Dados(pasta)
@@ -437,6 +442,9 @@ class TesteColetor(unittest.TestCase):
         self.assertEqual(d.novidades(antes), [("Glom Gazingo", [6596], [(197, 150)])])
         self.assertEqual(d.novidades(d.retrato()), [])
         self.assertEqual(d.novidades({}), [])
+        # O item 11 ensina a receita do item 10 e está à venda; o item 12 não tem item de receita conhecido.
+        self.assertEqual(d.aprender(10), [{"item": 11, "nivel": 225, "min": 2500, "qtd": 50, "habitual": None}])
+        self.assertEqual(d.aprender(12), [])
         # Alerta pessoal: vale quando o menor preço (80s) cruza o alvo.
         self.assertTrue(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 8000}))
         self.assertFalse(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 7999}))

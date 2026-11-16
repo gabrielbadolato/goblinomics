@@ -235,6 +235,8 @@ td.nome .fav { position: absolute; right: 4px; top: 50%; transform: translateY(-
 #boas-vindas ul { margin: 4px 0 8px; padding-left: 20px; } #boas-vindas strong { color: var(--ouro); }
 .lema button { margin-left: 8px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-style: normal; color: var(--ouro-fosco); text-decoration: underline; }
 .lema button:hover { color: #fff; }
+a.wh { color: var(--ouro-fosco); white-space: nowrap; }
+a.wh:hover { color: #fff; }
 #convite-app { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; background: #2b2410; border-top: 1px solid #000; border-bottom: 1px solid var(--ouro-fosco); color: #f3e3ad; font-size: 13px; }
 #convite-app .texto { flex: 1 1 220px; }
 #convite-app .acao { font-size: 14px; padding: 7px 18px; }
@@ -659,6 +661,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <ul>
       <li><strong>Caminho mais barato</strong> (aba Profissões, campo "Subir até"): a cada ponto de habilidade, escolhemos a receita com o menor custo de material dividido pela chance de dar ponto. A chance é 100% enquanto a receita é laranja e cai em linha reta da amarela até a cinza. O jogo não informa em que nível a receita é aprendida: supomos uma faixa laranja do tamanho da amarela mais a verde, e por isso cada passo precisa ser conferido.</li>
       <li><strong>Guilda</strong> (aba Profissões, campo "Guilda"): duas vezes por dia lemos da Blizzard os membros da guilda, a habilidade de cada um nas profissões e as receitas que conhecem. Personagens sem guilda entram a pedido, no grupo "Outros personagens". Personagens de nível muito baixo não aparecem na consulta. Escolhendo um personagem, a lista mostra só as receitas dele e usa a habilidade dele.</li>
+      <li><strong>Como aprender a receita</strong> (aba Profissões, ao abrir uma receita): a Blizzard informa, para cada item de receita, o que ele ensina a fabricar e a habilidade que exige. Mostramos esse item e o preço dele no leilão. Quando nenhum item de receita apareceu no leilão até hoje, ela costuma ser ensinada pelo instrutor ou não pode ser negociada; o link do Wowhead diz onde conseguir.</li>
       <li><strong>Melhor hora</strong> (no histórico de cada item): em cada dia, comparamos o menor preço de cada hora com a média daquele dia, e tiramos a média entre os dias, suavizada em 3 horas. Precisa de 3 dias completos; por dia da semana, de 14 dias.</li>
       <li><strong>Favoritos desde a última visita</strong> (aba Resumo): o navegador guarda o preço dos seus favoritos a cada visita e compara com a visita anterior, feita pelo menos 2 horas antes. Só aparecem mudanças de 5% ou mais.</li>
     </ul>
@@ -726,6 +729,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
     <ul>
       <li><strong>Cheapest path</strong> (Professions tab, "Level up to" field): at each skill point we pick the recipe with the lowest material cost divided by the chance of a skill-up. The chance is 100% while the recipe is orange and drops in a straight line from yellow to grey. The game does not say at which level a recipe is learned: we assume an orange range as long as the yellow plus green one, so each step needs checking.</li>
       <li><strong>Guild</strong> (Professions tab, "Guild" field): twice a day we read from Blizzard the guild members, each one's profession skill and the recipes they know. Characters without a guild are added on request, under "Other characters". Very low level characters do not show up. Picking a character shows only their recipes and uses their skill.</li>
+      <li><strong>How to learn the recipe</strong> (Professions tab, when you open a recipe): for each recipe item, Blizzard tells us what it teaches and the skill it requires. We show that item and its auction house price. When no recipe item has ever shown up on the auction house, it is usually taught by the trainer or cannot be traded; the Wowhead link says where to get it.</li>
       <li><strong>Best time</strong> (in each item's history): for each day we compare the lowest price at each hour with that day's average, then average across days, smoothed over 3 hours. It needs 3 full days; by weekday, 14 days.</li>
       <li><strong>Favorites since your last visit</strong> (Summary tab): the browser stores your favorites' prices on each visit and compares them with the previous visit, at least 2 hours earlier. Only changes of 5% or more are shown.</li>
     </ul>
@@ -1299,11 +1303,27 @@ function caixaHistorico(id) {
       <input type="number" min="0" step="any" value="${((porItem.get(id)?.min ?? 0) / 10000).toFixed(4).replace(/\.?0+$/, "")}" aria-label="Preço pago por unidade, em ouro"> de ouro cada</span>
       <button class="acao" type="button" data-comprei="${id}">Pôr na carteira</button></div></td></tr>`;
 }
+// Página do item no Wowhead, na língua escolhida para os nomes dos itens.
+const urlWowhead = id => `https://www.wowhead.com/forever/${NOMES_PT ? "pt/" : ""}item=${id}`;
+const eloWowhead = (id, texto) => `<a class="wh" href="${urlWowhead(id)}" target="_blank" rel="noopener" title="${L("Abre a página do item no Wowhead", "Opens the item page on Wowhead")}">${texto} ↗</a>`;
+// Como se aprende a receita que fabrica o item: o item que a ensina (a API diz qual é) e o preço dele
+// no leilão. Sem item conhecido, ele nunca apareceu no leilão: em geral é receita de instrutor.
+function comoAprender(item) {
+  const itens = receitas?.ensina?.[item];
+  if (!itens) return `<div class="rotulo" data-nt style="margin:0 0 6px">${L("Receita de instrutor ou não negociável: o item que a ensina nunca apareceu no leilão.", "Trainer recipe or not tradeable: the item that teaches it has never shown up on the auction house.")} ${eloWowhead(item, L("Onde conseguir", "Where to get it"))}</div>`;
+  return itens.map(([rid, nivel]) => {
+    const g = porItem.get(rid);
+    const preco = g?.min != null ? `${L("no leilão por", "on the auction house for")} ${moeda(g.min)} (${g.qtd.toLocaleString(LOC)} ${L("à venda", "listed")})`
+      : L("sem anúncio no leilão agora", "not listed right now");
+    return `<div class="rotulo" data-nt style="margin:0 0 6px">${L("Receita", "Recipe")}: ${eloWowhead(rid, esc(infoItem(rid).nome))} · ${preco}${nivel ? ` · ${L("exige habilidade", "requires skill")} ${nivel}` : ""}</div>`;
+  }).join("");
+}
+
 function histHtml(id, botoes) {
   botoes ??= Object.entries(PERIODOS).map(([k, nome]) =>
     `<button type="button" data-periodo="${k}" class="${k === estado.periodo ? "ativo" : ""}">${nome}</button>`).join(" ");
   return `<div class="hist" data-id="${id}">
-    <div class="hist-topo"><strong>Histórico</strong><span class="leitura"></span><span class="periodos">${botoes}</span></div>
+    <div class="hist-topo"><strong>Histórico</strong><span data-nt>${eloWowhead(id, "Wowhead")}</span><span class="leitura"></span><span class="periodos">${botoes}</span></div>
     <div class="graficos"><div class="vazio">Carregando…</div></div><div class="padrao" data-nt hidden></div></div>`;
 }
 
@@ -1907,6 +1927,7 @@ function desenharProf() {
         ${l.limite === "material" ? "Para mais do que isso não há material à venda." : l.limite === "preço" ? "Depois disso o material encarece e o lucro total para de crescer." : ""}
         ${l.limite === "giro" ? `O mercado vende só ~${porDia(l.vdia)} por dia.` : ""}</div>` : ""}
       ${faixa ? `<div class="rotulo" style="margin:0 0 6px">Dá ponto de habilidade até ${faixa[1]} (amarela a partir de ${faixa[0]})</div>` : ""}
+      ${comoAprender(l.item)}
       <table class="reagentes">${materiais}</table>${semHover ? `<div class="atributos" data-id="${l.item}"></div>` : ""}${histHtml(l.item)}</td></tr>`;
   }
   $("linhas-prof").innerHTML = h;
