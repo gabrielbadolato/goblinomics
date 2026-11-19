@@ -431,6 +431,20 @@ class TesteColetor(unittest.TestCase):
         # O item 11 ensina a receita do item 10 e está à venda; o item 12 não tem item de receita conhecido.
         self.assertEqual(d.aprender(10), [{"item": 11, "nivel": 225, "min": 2500, "qtd": 50, "habitual": None}])
         self.assertEqual(d.aprender(12), [])
+        # "Falta aprender": a guilda já sabe a receita do item 10, então nada falta.
+        self.assertEqual(d.faltam(), [])
+        # Sem ninguém que saiba, entra: receita a 25s, e Glom (150) ainda não chega aos 225 exigidos.
+        d.quem.clear()
+        (f,) = d.faltam()
+        self.assertEqual((f["item"], f["receita"], f["min"], f["nivel"], f["podem"], f["profissao"]),
+                         (10, 11, 2500, 225, [], "Tailoring"))
+        d.membros["Glom Gazingo"]["profissoes"] = [[197, 230]]
+        self.assertEqual(d.faltam()[0]["podem"], ["Glom Gazingo"])
+        # Profissão que ninguém pratica fica de fora.
+        d.membros["Glom Gazingo"]["profissoes"] = [[171, 300]]
+        self.assertEqual(d.faltam(), [])
+        d.membros["Glom Gazingo"]["profissoes"] = [[197, 150]]
+        d.quem[6596] = ["Glom Gazingo"]
         # Alerta pessoal: vale quando o menor preço (80s) cruza o alvo.
         self.assertTrue(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 8000}))
         self.assertFalse(d.alerta_vale({"item": 10, "tipo": "abaixo", "preco": 7999}))

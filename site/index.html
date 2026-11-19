@@ -1443,7 +1443,7 @@ async function carregarReceitas() {
 }
 // ---- Guilda: quem fabrica o quê (dados/guildas.json, lido da API de perfis a cada 12 h) ----
 // prefs.guilda: "" = todas as receitas, "g:slug" = o que a guilda fabrica, "n:slug" = o que ninguém
-// sabe, "m:slug:nome" = só as receitas de um personagem (e a habilidade dele vale no lugar da digitada).
+// sabe, "v:slug" = o que ninguém sabe e tem o item da receita à venda agora, "m:slug:nome" = só as receitas de um personagem (e a habilidade dele vale no lugar da digitada).
 let guildas = null;
 async function carregarGuildas() {
   if (guildas) return;
@@ -1469,7 +1469,23 @@ function passaGuilda(l) {
   if (!tipo || !guildaAtiva()) return true;
   // Personagem escolhido que não tem esta profissão: a lista fica inteira, como em "Todas as receitas".
   if (tipo === "m") return !m || pontosDe(m, l.profId) == null || m.conhece.has(l.rid);
+  if (tipo === "v") return !fabricantes(l.rid).length && receitaAVenda(l.item) != null;
   return (fabricantes(l.rid).length > 0) === (tipo === "g");
+}
+// O item de receita mais barato à venda agora que ensina a fabricar o item; null se não há nenhum.
+function receitaAVenda(item) {
+  let melhor = null;
+  for (const [rid] of receitas?.ensina?.[item] || []) {
+    const min = porItem.get(rid)?.min;
+    if (min != null && (melhor == null || min < melhor.min)) melhor = {id: rid, min};
+  }
+  return melhor;
+}
+// Nas listas do que ninguém da guilda sabe: quanto custa aprender agora, quando a receita está à venda.
+function seloReceita(item) {
+  if (!["n", "v"].includes(escolhaDeGuilda().tipo)) return "";
+  const r = receitaAVenda(item);
+  return r ? `<span class="variantes guilda" data-nt title="${esc(L("Menor preço, agora, do item que ensina esta receita", "Lowest price right now of the item that teaches this recipe") + ": " + infoItem(r.id).nome)}">${L("receita no leilão", "recipe listed")}: ${moeda(r.min)}</span>` : "";
 }
 function seloGuilda(rid) {
   const nomes = fabricantes(rid);
@@ -1485,7 +1501,8 @@ function montarGuilda() {
   for (const g of guildas) {
     h += g.avulsos ? `<optgroup label="${L("Outros personagens", "Other characters")}">`
       : `<optgroup label="${esc(g.nome)}"><option value="g:${esc(g.slug)}">${L("O que a guilda fabrica", "What the guild can craft")}</option>
-      <option value="n:${esc(g.slug)}">${L("O que ninguém sabe ainda", "What nobody knows yet")}</option>`;
+      <option value="n:${esc(g.slug)}">${L("O que ninguém sabe ainda", "What nobody knows yet")}</option>
+      <option value="v:${esc(g.slug)}">${L("Ninguém sabe, com receita à venda", "Nobody knows, recipe for sale")}</option>`;
     // Só quem tem a profissão aberta entra na lista.
     for (const m of g.membros) {
       const pontos = pontosDe(m, prof.id);
@@ -1903,7 +1920,7 @@ function desenharProf() {
     const margem = l.margem == null ? "–" : Math.round(l.margem).toLocaleString(LOC) + "%";
     h += `<tr class="item abre" data-id="${l.item}" data-rid="${l.rid}" aria-expanded="${aberto}">
       <td class="nome">${iconeHtml(i)}<span><span class="q-${i.qualidade}">${esc(l.nome)}</span>
-        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}${selo(l, ["alto", "incerto"])}${seloGuilda(l.rid)}
+        ${l.feitos !== 1 ? `<span class="variantes">faz ${l.feitos} por vez</span>` : ""}${selo(l, ["alto", "incerto"])}${seloGuilda(l.rid)}${seloReceita(l.item)}
         ${dif != null ? `<span class="variantes dif-${dif}" title="Fica amarela com ${faixa[0]} de habilidade e cinza com ${faixa[1]}">${CORES_DIF[dif]}</span>` : ""}
         ${l.recarga ? `<span class="variantes" title="Só dá para fabricar uma vez a cada ${textoRecarga(l.recarga)}">recarga ${textoRecarga(l.recarga)}</span>` : ""}
         <span class="sm">${esc(l.categoria)}${margem === "–" ? "" : ` · margem ${margem}`}${l.vdia != null ? ` · vende ~${porDia(l.vdia)}/dia${textoMargem(l.verro)}` : ""}</span></span><button type="button" class="fav mais ${prefs.lista[l.rid] ? "ativo" : ""}" data-lista="${l.rid}" title="${prefs.lista[l.rid] ? "Tirar da lista de compras" : "Pôr na lista de compras"}" aria-label="Lista de compras" aria-pressed="${!!prefs.lista[l.rid]}">${prefs.lista[l.rid] ? "✓" : "＋"}</button></td>

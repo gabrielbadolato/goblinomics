@@ -217,6 +217,30 @@ class Dados:
                           "habitual": self.habituais.get(receita_item)})
         return saida
 
+    def faltam(self):
+        """Receitas que ninguém da guilda sabe e cujo item de receita está à venda agora, só de profissão
+        que alguém da guilda pratica. Uma entrada por item fabricado, com o item de receita mais barato e
+        quem já tem habilidade para aprender. Primeiro as que alguém já pode aprender, depois as de
+        produto que vende mais."""
+        achados = []
+        for feito, itens in self.ensina.items():
+            receitas = self.receitas.get(feito, [])
+            if not receitas or any(r[0] in self.quem for r in receitas):
+                continue
+            a_venda = [(self.precos[i][0], i, nivel) for i, nivel in itens if self.precos.get(i, (None,))[0] is not None]
+            if not a_venda:
+                continue
+            minimo, receita_item, nivel = min(a_venda)
+            prof_id = receitas[0][1]
+            praticantes = sorted((pts, nome) for nome, m in self.membros.items() for p, pts in m["profissoes"] if p == prof_id)
+            if not praticantes:
+                continue
+            achados.append({"item": feito, "profissao": self.profissoes.get(str(prof_id), "?"), "receita": receita_item,
+                            "min": minimo, "habitual": self.habituais.get(receita_item), "nivel": nivel,
+                            "podem": [nome for pts, nome in reversed(praticantes) if pts >= (nivel or 0)],
+                            "por_dia": self.por_dia.get(feito)})
+        return sorted(achados, key=lambda a: (not a["podem"], -(a["por_dia"] or 0), a["min"]))
+
     def receitas_em_promocao(self, limite=5, desconto=0.3):
         """Itens de receita abaixo do habitual que ensinam algo que ninguém da guilda sabe, de profissão
         que alguém da guilda pratica: (item da receita, menor preço, habitual)."""

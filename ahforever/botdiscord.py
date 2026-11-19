@@ -20,6 +20,7 @@ from . import botpessoal, config, consulta, guilda
 log = logging.getLogger("goblinomics-bot")
 DOURADO = 0xF5C542
 MAX_RECEITAS = 3
+MAX_FALTAM = 12
 
 
 def _numero(v):
@@ -205,6 +206,24 @@ class Cartoes:
         cartao.description = "\n\n".join(blocos)
         return cartao
 
+    def faltam(self):
+        achados = self.d.faltam()
+        cartao = self.base("📚 Receitas que ninguém da guilda sabe, à venda agora")
+        linhas = []
+        for n, a in enumerate(achados[:MAX_FALTAM], 1):
+            exige = f"　exige {a['nivel']}" if a["nivel"] else ""
+            variacao = _variacao(a["min"], a["habitual"])
+            podem = ("👥 já pode aprender: " + ", ".join(a["podem"][:3]) + (" …" if len(a["podem"]) > 3 else "")
+                     if a["podem"] else "👥 ninguém tem a habilidade ainda")
+            linhas.append(f"`{n:>2}.` {self.elo(a['item'])} · {a['profissao']}\n　　📜 **{moedas(a['min'])}**"
+                          f"{'　' + variacao if variacao else ''}{exige}\n　　{podem}")
+        resto = len(achados) - len(linhas)
+        cartao.description = (caber(linhas, 3800) + (f"\ne mais {resto} no site" if resto > 0 else "") if linhas else
+                              "Nenhuma receita desconhecida da guilda está à venda agora.")
+        cartao.set_footer(text=cartao.footer.text + " · só profissões que alguém da guilda pratica · lista completa no site, "
+                          "em Profissões, campo Guilda")
+        return cartao
+
     def lucrativas(self):
         d = self.d
         cartao = self.base("💰 Receitas com lucro que a guilda sabe fazer")
@@ -346,6 +365,11 @@ class Painel(discord.ui.View):
         await interacao.response.send_message(embed=(await self.bot.cartoes()).desejos(),
                                               **resposta_privada(self.bot, "desejos"))
 
+    @discord.ui.button(label="Falta aprender", emoji="📚", style=discord.ButtonStyle.secondary, custom_id="gbx:faltam", row=1)
+    async def faltam(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).faltam(),
+                                              **resposta_privada(self.bot, "faltam"))
+
     @discord.ui.button(label="Meu personagem", emoji="🧙", style=discord.ButtonStyle.success, custom_id="gbx:personagem", row=2)
     async def personagem(self, interacao, _):
         await botpessoal.abrir_personagem(self.bot, interacao)
@@ -376,7 +400,9 @@ INSTRUCOES = (
      "**Ofertas**: itens 30% ou mais abaixo do habitual e com boa saída.\n"
      "**Lucro da guilda**: receitas que alguém da guilda sabe e dão lucro agora.\n"
      "**Consumíveis**: custo de hoje da lista de raide, por pessoa.\n"
-     "**Desejos**: o que a guilda está juntando; ✅ marca o que está bom para comprar."),
+     "**Desejos**: o que a guilda está juntando; ✅ marca o que está bom para comprar.\n"
+     "**Falta aprender**: receitas que ninguém da guilda sabe e estão à venda agora, com o preço e quem já tem "
+     "habilidade para aprender."),
     ("🧙 Só seu",
      "**Meu personagem**: escolha o seu uma vez e veja quais das suas receitas dão lucro. Dá para trocar quando quiser.\n"
      "**Meus alertas**: até 10. Escolha item, preço-alvo e se quer aviso abaixo ou acima. O bot confere a cada foto "
@@ -419,6 +445,7 @@ TEXTO_DO_PAINEL = (
     "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
     "🧪 **Consumíveis**: custo de hoje dos consumíveis de raide, por pessoa\n"
     "📋 **Desejos**: o que a guilda está juntando e se está bom para comprar\n"
+    "📚 **Falta aprender**: receitas que ninguém da guilda sabe e estão à venda agora\n"
     "🧙 **Meu personagem**: quais das suas receitas dão lucro agora\n"
     "🔔 **Meus alertas**: aviso em privado quando um item chegar ao seu preço\n"
     "❓ **Como usar**: instruções e como ler os números\n\n"
