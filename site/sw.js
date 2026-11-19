@@ -13,8 +13,8 @@ self.addEventListener("activate", e => e.waitUntil(
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
-  // O histórico é um arquivo por item e o addon é um download: não vale guardar.
-  const guardar = !/\/dados\/hist\/|\/addon\//.test(url.pathname);
+  // O histórico é um arquivo por item: não vale guardar.
+  const guardar = !/\/dados\/hist\//.test(url.pathname);
   // Sem a parte depois do "?", para "index.html?v=2" e "index.html" serem a mesma cópia.
   const chave = url.origin + url.pathname;
   e.respondWith(fetch(e.request).then(resposta => {

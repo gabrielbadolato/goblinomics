@@ -873,7 +873,7 @@ const TEXTOS_EN = {
   "Pôr na lista de compras": "Add to shopping list", "Tirar da lista de compras": "Remove from shopping list",
   "Quantas vezes fabricar": "How many crafts", "Quantidade comprada": "Quantity bought",
   "Preço pago por unidade, em ouro": "Price paid per unit, in gold", "Gráfico": "Chart", "Vendas estimadas": "Estimated sales",
-  "ouro": "gold", "prata": "silver", "cobre": "copper", "Addon para o jogo": "In-game addon", "fabricar": "craft", "coletar": "gather",
+  "ouro": "gold", "prata": "silver", "cobre": "copper", "fabricar": "craft", "coletar": "gather",
   "paguei": "paid", "agora": "now", "Comprei": "Bought", "por": "for", "de ouro cada": "gold each", "Minhas profissões:": "My professions:",
   "Nas outras casas": "In the other houses", "Vendas estimadas por coleta": "Estimated sales per snapshot",
   "Vendas estimadas por dia": "Estimated sales per day", "Receitas com lucro agora": "Recipes profitable right now",
@@ -947,7 +947,6 @@ const FRASES_EN = [
   ["O menor anúncio do destino ou, se for menor, o preço médio a que o item tem vendido lá", "The destination's lowest listing or, if lower, the average price the item has been selling for there"],
   ["Menor preço de agora menos a taxa da casa, menos o que você pagou, vezes a quantidade", "Current lowest price minus the house cut, minus what you paid, times the quantity"],
   ["Copia um endereço que abre a página direto neste item", "Copies an address that opens the page straight on this item"],
-  ["Mostra estes preços no tooltip dos itens dentro do jogo. Extraia em Interface/AddOns.", "Shows these prices in item tooltips in game. Extract into Interface/AddOns."],
 ];
 const NUM = "([\\d.,]+)";
 const PADROES_EN = [
@@ -2540,8 +2539,7 @@ async function carregarCasa() {
     : `Os preços estão com ${Math.floor(atraso)} h de atraso: ` + (semChecar != null ? `a Blizzard ainda não publicou preços novos (a coleta checou há ${Math.round(semChecar)} min).`
       : atraso < HORAS_DE_PANE ? "a Blizzard ainda não publicou preços novos." : "a coleta pode ter parado.");
   $("atualizado").innerHTML = `Dados coletados ${haQuanto(dados.coletado_em)} · ${new Date(dados.coletado_em).toLocaleString(LOC)}` +
-    " · site de fã, sem vínculo com a Blizzard" +
-    (meta.addon ? ` · <a href="${esc(meta.addon)}" download title="Mostra estes preços no tooltip dos itens dentro do jogo. Extraia em Interface/AddOns.">Addon para o jogo</a>` : "");
+    " · site de fã, sem vínculo com a Blizzard";
   porItem.clear(); degrausProntos = false;
   for (const g of grupos) porItem.set(g.id, g);
   girarFavoritos(dados.coletado_em);

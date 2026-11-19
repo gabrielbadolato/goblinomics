@@ -1,9 +1,8 @@
 # Goblinomics: monitor da casa de leilões do WoW: Forever
 
 Coleta os leilões do WoW: Forever pela API da Blizzard, guarda o histórico de
-preços em SQLite, publica uma página de consulta no GitHub Pages, avisa no
-Discord quando um preço cruza um limite e gera um addon que mostra os preços
-no tooltip do jogo.
+preços em SQLite, publica uma página de consulta no GitHub Pages, e avisa no
+Discord quando um preço cruza um limite.
 
 A API do Forever ainda não é documentada pela Blizzard. O que este projeto
 assume vem de testes da comunidade e pode mudar:
@@ -79,12 +78,3 @@ As regras ficam em `alertas.toml` (preço abaixo ou acima de um valor, ou queda
 em relação à média de 7 dias) e são conferidas a cada foto nova. A URL do
 webhook fica em `segredos/discord_webhook`, fora do git; sem esse arquivo nada
 é enviado. Cada regra avisa quando passa a valer e lembra de novo após 24 h.
-
-## Addon
-
-A cada exportação, `ahforever/addon.py` grava `site/addon/AHForever.zip` com os
-preços da `casa_padrao`. Extraia a pasta `AHForever` em `Interface/AddOns` do
-jogo; o tooltip dos itens passa a mostrar menor preço, mercado, quantidade à
-venda e vendas por dia. Os preços são os do momento em que o zip foi baixado:
-para atualizar, baixe e extraia de novo. O addon só lê esses dados; não
-interage com a casa de leilões. Ainda não foi testado dentro do jogo.

@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
-from . import addon, banco, bonus, catalogo, compactar, guilda, habitual
+from . import banco, bonus, catalogo, compactar, guilda, habitual
 from .compactar import DIAS_POR_HORA, SERIE
 
 
@@ -334,7 +334,7 @@ def exportar(cfg):
     else:
         (destino / "guildas.json").unlink(missing_ok=True)
 
-    casas, vistas, zip_do_addon = [], {}, None
+    casas, vistas = [], {}
     for ruleset_id, casa_id, nome in con.execute(
             "SELECT ruleset_id, casa_id, nome FROM casas ORDER BY 1, 2").fetchall():
         # A n-ésima casa de cada facção (Aliança, Horda, neutra) pertence ao mesmo ruleset;
@@ -348,8 +348,6 @@ def exportar(cfg):
         vendas = _vendas(con, ruleset_id, casa_id, agora, habituais)
         _gravar(destino / arquivo, {"coletado_em": coletado_em, "linhas": linhas, "vendas": vendas,
                                     "medias": habituais})
-        if casa_id == cfg.casa_padrao and zip_do_addon is None:
-            zip_do_addon = addon.gerar(cfg.pasta_site, f"{nome} {casa_id}", coletado_em, linhas, vendas)
         horas, meses = _historico(con, destino, ruleset_id, casa_id, agora.strftime("%Y-%m-%d"))
         _gravar(destino / f"degraus-{ruleset_id}-{casa_id}.json", degraus)
         casas.append({"ruleset": ruleset_id, "id": casa_id, "nome": nome, "grupo": grupo,
@@ -362,7 +360,6 @@ def exportar(cfg):
     _gravar(destino / "meta.json", {
         "gerado_em": agora.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "casa_padrao": cfg.casa_padrao,
-        "addon": zip_do_addon,
         "partes_tooltips": PARTES_TOOLTIPS,
         "guildas": bool(guildas),
         "casas": casas,

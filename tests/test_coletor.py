@@ -4,9 +4,8 @@ from datetime import datetime, timezone
 import unittest
 from pathlib import Path
 
-import zipfile
 
-from ahforever import addon, alertas, banco, bonus, catalogo, coletor, compactar, consulta, exportar, guilda, habitual, receitas, vendas, wowhead
+from ahforever import alertas, banco, bonus, catalogo, coletor, compactar, consulta, exportar, guilda, habitual, receitas, vendas, wowhead
 from ahforever.api import Resposta
 from ahforever.config import Config
 from ahforever.resumo import chave_variante, resumir
@@ -368,19 +367,6 @@ class TesteColetor(unittest.TestCase):
         self.assertEqual(alertas.verificar(self.cfg, enviar, agora), 0)
         # Continua valendo um dia depois: lembra de novo.
         self.assertEqual(alertas.verificar(self.cfg, enviar, agora.replace(day=11, hour=13)), 1)
-
-    def test_addon_leva_o_menor_preco_de_cada_item(self):
-        destino = Path(self.tmp.name)
-        linhas = [[720, "", 5000, 5000, 1, 1], [720, "b1", 4000, 4100, 2, 2], [9, "", None, None, 1, 1]]
-        caminho = addon.gerar(destino, "Horde Auction House 113", "2026-11-10T16:40:09Z", linhas,
-                              {"horas": 12, "itens": {720: 6}})
-        with zipfile.ZipFile(destino / caminho) as z:
-            self.assertEqual(sorted(z.namelist()),
-                             ["AHForever/AHForever.lua", "AHForever/AHForever.toc", "AHForever/Dados.lua"])
-            dados = z.read("AHForever/Dados.lua").decode()
-        # Menor preço entre as variantes, mercado dele, total à venda e vendas por dia; só lance fica de fora.
-        self.assertIn("[720]={4000,4100,3,12},", dados)
-        self.assertNotIn("[9]=", dados)
 
     def test_guilda_lista_quem_tem_profissao_sem_sobrenome(self):
         ns = "profile-forever-us"

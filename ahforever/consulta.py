@@ -55,7 +55,7 @@ class Dados:
         self.casa, self.coletado_em = casa, foto["coletado_em"]
         self.itens = {int(i): v for i, v in self._ler("itens.json")["itens"].items()}
         self.nomes_pt = {int(i): n for i, n in (self._ler("nomes-pt.json", {}).get("itens") or {}).items()}
-        # Menor preço entre as variantes, o mercado dela e o total à venda (como no addon).
+        # Menor preço entre as variantes, o mercado dela e o total à venda.
         self.precos = {}
         for item_id, _, minimo, mercado, quantidade, *_ in foto["linhas"]:
             p = self.precos.setdefault(item_id, [None, None, 0])
