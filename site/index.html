@@ -253,12 +253,17 @@ a.wh:hover { color: #fff; }
 #metodo .topo button { margin: 4px 8px; }
 #metodo table { min-width: 0; margin: 6px 0; } #metodo td, #metodo th { white-space: normal; padding: 4px 8px; font: 13px Arial, sans-serif; vertical-align: top; }
 html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
-#tamanho { right: 50px !important; }
-#nomes { right: 98px !important; }
-#nomes-m { display: none; }
 #tamanho.ativo { color: var(--ouro); }
-#idioma, #tamanho, #nomes { position: absolute; right: 10px; top: 5px; cursor: pointer; padding: 2px 8px; border: 1px solid #000; border-radius: 3px; font: 11px var(--titulo);
+#tamanho { position: absolute; right: 10px; top: 5px; cursor: pointer; padding: 2px 8px; border: 1px solid #000; border-radius: 3px; font: 11px var(--titulo);
   color: var(--ouro-fosco); background: linear-gradient(#3b3b3b, #272727); box-shadow: inset 0 0 0 1px rgba(110, 110, 110, .3); }
+/* Língua do site e dos nomes dos itens: as duas opções à vista, a escolhida em ouro. */
+#linguas { position: absolute; right: 66px; top: 4px; display: inline-flex; gap: 8px; }
+.troca { display: inline-flex; align-items: stretch; overflow: hidden; border: 1px solid #000; border-radius: 3px; font: 11px var(--titulo); font-style: normal;
+  background: linear-gradient(#3b3b3b, #272727); box-shadow: inset 0 0 0 1px rgba(110, 110, 110, .3); }
+.troca small { padding: 2px 7px; font-size: 11px; color: #c9c9c9; }
+.troca button { margin: 0; padding: 2px 7px; border: 0; border-left: 1px solid #000; background: none; cursor: pointer; font: inherit; color: var(--fraco); text-decoration: none; }
+.troca button:hover { color: #fff; }
+.troca button.ativo, .troca button.ativo:hover { background: linear-gradient(#ffe46b, #c79a12); color: #1a1400; font-weight: bold; cursor: default; }
 .acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; max-width: 800px; margin-top: 10px; font-size: 13px; color: var(--fraco); }
 .acoes input { width: 74px; }
 #agora td.tipo-acao { color: var(--fraco); font: 12px Arial, sans-serif; white-space: nowrap; }
@@ -329,10 +334,10 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   h1 { font-size: 19px; letter-spacing: 1px; }
   .lema { padding: 4px 10px 5px; font-size: 11.5px; }
   #tamanho { display: none; }
-  #nomes { display: none; }
-  #nomes-m { display: inline; }
-  #idioma { position: static; margin-left: auto; padding: 8px 10px; font-size: 12px; }
-  .barra-titulo label { margin-left: 0; }
+  #linguas { position: static; display: flex; justify-content: center; gap: 10px; margin-top: 6px; }
+  .troca { font-size: 12px; }
+  .troca small { padding: 6px 8px; font-size: 12px; }
+  .troca button { padding: 6px 11px; }
   #atualizado { display: none; }
   main { grid-template-columns: minmax(0, 1fr); padding: 6px; }
   #categorias { flex-direction: row; overflow-x: auto; max-height: none; scrollbar-width: none; }
@@ -397,10 +402,12 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       src="https://blz-contentstack-images.akamaized.net/v3/assets/blt9c12f249ac15c7ec/blt527dd61848a757c7/6aa3316cad92093ee45628fd/camelot-logo-gamepage.png?width=220"></span>
     <h1>Goblinomics</h1>
     <button type="button" id="tamanho" data-nt title="Tamanho da página / Page size">A+</button>
-    <button type="button" id="nomes" data-nt title="Língua dos nomes dos itens / Item name language"></button>
-    <button type="button" id="idioma" data-nt title="Switch to English / Mudar para português">EN</button>
+    <span id="linguas" data-nt>
+      <span class="troca" id="idioma"><small></small><button type="button" data-v="pt">PT</button><button type="button" data-v="en">EN</button></span>
+      <span class="troca" id="nomes"><small></small><button type="button" data-v="pt">PT</button><button type="button" data-v="en">EN</button></span>
+    </span>
   </div>
-  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button><button type="button" id="nomes-m" data-nt title="Língua dos nomes dos itens / Item name language"></button><button type="button" id="instalar" data-nt hidden></button><span id="sem-rede" data-nt hidden></span></p>
+  <p class="lema">Preços, lucro e oportunidades da casa de leilões do WoW: Forever, atualizados a cada hora.<button type="button" id="abrir-metodo">Como calculamos</button><button type="button" id="instalar" data-nt hidden></button><span id="sem-rede" data-nt hidden></span></p>
   <div class="barra-abas">
     <nav id="abas" aria-label="Seções">
       <div class="grupo-abas real"><small>Anúncios reais do jogo</small><div>
@@ -2569,9 +2576,6 @@ async function carregarCasa() {
 async function iniciar() {
   [meta, catalogo, bonusJogo] = await Promise.all([json("dados/meta.json"), json("dados/itens.json"),
     json("dados/bonus.json").catch(() => ({bonus: {}, pontos: {}}))]);
-  $("idioma").textContent = EN ? "PT" : "EN";
-  // No celular o botão do topo não cabe; lá a mesma troca fica ao lado de "Como calculamos".
-  $("nomes").textContent = $("nomes-m").textContent = L("Itens", "Items") + ": " + (NOMES_PT ? "PT" : "EN");
   // A posição 10 do item guarda o nome na outra língua, para a busca aceitar as duas em qualquer combinação.
   const pt = await json("dados/nomes-pt.json").catch(() => ({}));
   for (const [id, nome] of Object.entries(pt.itens || {})) {
@@ -2610,8 +2614,18 @@ $("tamanho").onclick = () => {
   prefs.tamanho = TAMANHOS[(TAMANHOS.indexOf(prefs.tamanho) + 1) % TAMANHOS.length];
   guardarPrefs(); aplicarTamanho();
 };
-$("nomes").onclick = $("nomes-m").onclick = () => { prefs.nomes = NOMES_PT ? "en" : "pt"; guardarPrefs(); location.reload(); };
-$("idioma").onclick = () => { prefs.lingua = EN ? "pt" : "en"; guardarPrefs(); location.reload(); };
+// Cada troca mostra as duas línguas e destaca a que está valendo; clicar na outra muda e recarrega.
+for (const [id, campo, atual, rotulo, dica] of [
+  ["idioma", "lingua", LINGUA, "Site", L("Língua do site", "Site language")],
+  ["nomes", "nomes", NOMES_PT ? "pt" : "en", L("Itens", "Items"), L("Língua dos nomes dos itens: use a mesma do jogo", "Item name language: use the same as your game")]]) {
+  $(id).title = dica;
+  $(id).querySelector("small").textContent = rotulo;
+  for (const b of $(id).querySelectorAll("button")) {
+    b.classList.toggle("ativo", b.dataset.v === atual);
+    b.setAttribute("aria-pressed", b.dataset.v === atual);
+    b.onclick = () => { if (b.dataset.v !== atual) { prefs[campo] = b.dataset.v; guardarPrefs(); location.reload(); } };
+  }
+}
 // A casa padrão é escolha de quem usa, guardada neste navegador: a página sempre abre nela.
 // Sem escolha, vale a do servidor (casa_padrao do config.toml). A última opção do seletor marca a casa atual.
 const casaPadrao = () => prefs.casaPadrao ?? meta.casa_padrao;
@@ -2900,8 +2914,11 @@ if (!semHover) {
 // No celular a escolha da casa fica na barra de título; em tela grande, ao lado das abas.
 const seletorDaCasa = $("casa").parentElement;
 const posicionarCasa = () => (ESTREITO.matches ? document.querySelector(".barra-titulo") : document.querySelector(".barra-abas")).insertBefore(seletorDaCasa, ESTREITO.matches ? null : $("atualizado"));
-ESTREITO.addEventListener("change", posicionarCasa);
-posicionarCasa();
+// As trocas de língua não cabem na barra de título do celular: lá descem para a linha do lema.
+const posicionarLinguas = () => document.querySelector(ESTREITO.matches ? ".lema" : ".barra-titulo").append($("linguas"));
+const posicionar = () => { posicionarCasa(); posicionarLinguas(); };
+ESTREITO.addEventListener("change", posicionar);
+posicionar();
 const falhou = e => { $("aviso").hidden = false; $("aviso").textContent = "Não foi possível carregar os dados: " + e.message; };
 iniciar().catch(falhou);
 </script>
