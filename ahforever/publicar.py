@@ -1,11 +1,15 @@
 import os
 import shutil
 import subprocess
+import time
 from datetime import datetime
 
 RAMO = "gh-pages"
 # Os commits são automáticos; a máquina não tem identidade global do git.
 AUTOR = ("-c", "user.name=Monitor AH Forever", "-c", "user.email=ah-forever@localhost")
+# Cada publicação reescreve o commit e deixa o anterior solto no disco (perto de 200 MB por dia).
+HORAS_ENTRE_LIMPEZAS = 24
+MARCA_DA_LIMPEZA = "goblinomics-limpo"
 
 
 def _git(pasta, env, *args, check=True):
@@ -14,6 +18,22 @@ def _git(pasta, env, *args, check=True):
     if check and r.returncode:
         raise SystemExit(f"pages: git {args[0]} falhou: {r.stderr.strip()}")
     return r
+
+
+def limpar(pasta, env, forcar=False):
+    """Descarta os commits antigos da pasta de publicação, no máximo uma vez por dia. Devolve se limpou.
+    Uma falha aqui não derruba a publicação: fica para a próxima vez."""
+    marca = pasta / ".git" / MARCA_DA_LIMPEZA
+    if not forcar and marca.exists() and time.time() - marca.stat().st_mtime < HORAS_ENTRE_LIMPEZAS * 3600:
+        return False
+    for args in (("reflog", "expire", "--expire=now", "--all"), ("gc", "-q", "--prune=now")):
+        r = _git(pasta, env, *args, check=False)
+        if r.returncode:
+            print(f"pages: limpeza falhou em git {args[0]}: {r.stderr.strip()}")
+            return False
+    marca.touch()
+    print("pages: commits antigos descartados")
+    return True
 
 
 def publicar(cfg):
@@ -49,3 +69,4 @@ def publicar(cfg):
     _git(pasta, env, "commit", "-q", "-m", mensagem, *(["--amend"] if tem_commit else []))
     _git(pasta, env, "push", "-q", "--force", "origin", RAMO)
     print(f"pages: publicado ({mensagem})")
+    limpar(pasta, env)

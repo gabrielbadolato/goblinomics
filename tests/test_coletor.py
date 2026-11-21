@@ -470,3 +470,26 @@ class TesteColetor(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLimpezaDaPublicacao(unittest.TestCase):
+    def test_descarta_commits_reescritos_uma_vez_por_dia(self):
+        import os, subprocess, tempfile
+        from pathlib import Path
+        from ahforever import publicar
+        with tempfile.TemporaryDirectory() as tmp:
+            pasta, env = Path(tmp), dict(os.environ)
+            publicar._git(pasta, env, "init", "-q", "-b", publicar.RAMO)
+            for n in range(3):
+                (pasta / "dados.bin").write_bytes(os.urandom(200_000))
+                publicar._git(pasta, env, "add", "-A")
+                publicar._git(pasta, env, "commit", "-q", "-m", "x", *(["--amend"] if n else []))
+            soltos = lambda: sum(1 for _ in (pasta / ".git" / "objects").rglob("*") if _.is_file() and len(_.name) == 38)
+            self.assertGreater(soltos(), 3)
+            self.assertTrue(publicar.limpar(pasta, env))
+            self.assertEqual(soltos(), 0)
+            packs = sum(f.stat().st_size for f in (pasta / ".git" / "objects" / "pack").glob("*.pack"))
+            self.assertLess(packs, 300_000, "só a última versão deve sobrar")
+            self.assertEqual(subprocess.run(["git", "-C", tmp, "status", "--short"], capture_output=True, text=True).stdout, "")
+            self.assertFalse(publicar.limpar(pasta, env), "a segunda limpeza no mesmo dia não roda")
+            self.assertTrue(publicar.limpar(pasta, env, forcar=True))
