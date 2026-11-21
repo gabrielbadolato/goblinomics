@@ -204,24 +204,44 @@ class TestBot(unittest.IsolatedAsyncioTestCase):
         painel = botdiscord.Painel(self.bot)
         conferir_botoes(self, painel)
         ids = [b.custom_id for b in painel.children if b.custom_id]
-        self.assertEqual(ids, ["gbx:preco", "gbx:receita", "gbx:quemfaz", "gbx:ofertas", "gbx:lucro", "gbx:consumiveis",
-                               "gbx:desejos", "gbx:faltam", "gbx:personagem", "gbx:alertas", "gbx:ajuda"],
+        self.assertEqual(ids, ["gbx:preco", "gbx:quemfaz", "gbx:personagem", "gbx:mais", "gbx:ajuda"],
                          "custom_id é o que mantém vivo o painel já publicado: não renomear")
+        self.assertLessEqual(len(ids), 5, "o painel é curto de propósito: o resto vai em Mais")
         for custom_id in ids:
             with self.subTest(botao=custom_id):
                 tipo, extras = await self.clicar(painel, custom_id)
-                if custom_id in ("gbx:preco", "gbx:receita", "gbx:quemfaz"):
+                if custom_id in ("gbx:preco", "gbx:quemfaz"):
                     self.assertEqual(tipo, "janela")
                 else:
                     # Tudo que sai do painel é privado: o canal fica só com a mensagem do painel.
                     self.assertEqual((tipo, extras["ephemeral"]), ("mensagem", True))
 
+    async def test_mais_abre_o_resto_e_cada_botao_responde(self):
+        _, extras = await self.clicar(botdiscord.Painel(self.bot), "gbx:mais")
+        mais = extras["view"]
+        conferir_botoes(self, mais)
+        rotulos = [b.label for b in mais.children]
+        self.assertEqual(rotulos, ["Receita", "Meus alertas", "Ofertas", "Lucro da guilda", "Falta aprender",
+                                   "Consumíveis", "Desejos"])
+        for rotulo in rotulos:
+            with self.subTest(botao=rotulo):
+                self.assertIn(f"**{rotulo}**", botdiscord.TEXTO_DO_MAIS)
+                tipo, resposta = await self.clicar(mais, rotulo=rotulo)
+                if rotulo == "Receita":
+                    self.assertEqual(tipo, "janela")
+                else:
+                    self.assertEqual((tipo, resposta["ephemeral"]), ("mensagem", True))
+        # O nome do botão fica no custom_id (registro de uso); o sufixo evita choque entre duas pessoas.
+        outro = botdiscord.Mais(self.bot)
+        self.assertTrue(all(b.custom_id.startswith("mais:") for b in mais.children))
+        self.assertFalse({b.custom_id for b in mais.children} & {b.custom_id for b in outro.children})
+
     def test_o_texto_do_painel_e_as_instrucoes_citam_todo_botao(self):
         painel_rotulos = ["Preço", "Receita", "Quem faz", "Ofertas", "Lucro da guilda", "Consumíveis", "Desejos",
-                          "Falta aprender", "Meu personagem", "Meus alertas", "Como usar"]
+                          "Falta aprender", "Meu personagem", "Meus alertas", "Mais", "Como usar"]
         instrucoes = "\n".join(texto for _, texto in botdiscord.INSTRUCOES)
         for rotulo in painel_rotulos:
-            self.assertIn(f"**{rotulo}**", botdiscord.TEXTO_DO_PAINEL)
+            self.assertIn(f"**{rotulo}**", botdiscord.TEXTO_DO_PAINEL + botdiscord.TEXTO_DO_MAIS)
             if rotulo != "Como usar":
                 self.assertIn(f"**{rotulo}**", instrucoes, "botão sem explicação no Como usar")
 
@@ -241,7 +261,7 @@ class TestBot(unittest.IsolatedAsyncioTestCase):
     # ---- consultas de item ----
 
     async def test_janela_de_item_nada_um_ou_varios(self):
-        _, extras = await self.clicar(botdiscord.Painel(self.bot), "gbx:receita")
+        _, extras = await self.clicar(botdiscord.Mais(self.bot), rotulo="Receita")
         janela = extras["modal"]
         _, nada = await self.preencher(janela, item="xyzzy")
         self.assertIn("Não achei", nada["content"])
@@ -311,7 +331,7 @@ class TestBot(unittest.IsolatedAsyncioTestCase):
     async def test_mostrar_no_canal_publica_e_depois_apaga(self):
         fixo = self.bot.painel_fixo
         fixo.estado["publico"] = CANAL_PUBLICO
-        _, extras = await self.clicar(botdiscord.Painel(self.bot), "gbx:ofertas")
+        _, extras = await self.clicar(botdiscord.Mais(self.bot), rotulo="Ofertas")
         tipo, depois = await self.clicar(extras["view"], rotulo="Mostrar no canal")
         self.assertEqual(tipo, "edicao")
         (_, canal, mensagem), = self.registro
@@ -355,7 +375,7 @@ class TestBot(unittest.IsolatedAsyncioTestCase):
 
     async def test_alerta_cria_avisa_uma_vez_por_cruzamento_e_apaga(self):
         bot, painel = self.bot, botdiscord.Painel(self.bot)
-        _, vazio = await self.clicar(painel, "gbx:alertas")
+        _, vazio = await self.clicar(botdiscord.Mais(self.bot), rotulo="Meus alertas")
         self.assertIn("Você não tem alertas", vazio["embed"].description)
         _, extras = await self.clicar(vazio["view"], rotulo="Novo alerta")
         janela = extras["modal"]
@@ -395,7 +415,7 @@ class TestBot(unittest.IsolatedAsyncioTestCase):
         await botpessoal.conferir_alertas(bot)
         self.assertEqual(len(self.privadas), 2)
 
-        _, lista = await self.clicar(painel, "gbx:alertas")
+        _, lista = await self.clicar(botdiscord.Mais(self.bot), rotulo="Meus alertas")
         self.assertIn("✅ no alvo", lista["embed"].description)
         _, apagado = await self.escolher(lista["view"], 0)
         self.assertEqual(apagado["content"], "Alerta apagado.")

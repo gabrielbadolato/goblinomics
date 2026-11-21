@@ -9,6 +9,7 @@ todos, e o painel fixo de botões (/painel), em que cada pessoa consulta em priv
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime
 
@@ -323,62 +324,80 @@ class Pergunta(discord.ui.Modal):
                                                   view=Escolha(self.bot, self.consulta_id, achados), ephemeral=True)
 
 
+class Mais(discord.ui.View):
+    """O que o painel guarda atrás do botão Mais, numa resposta só para quem clicou. O custom_id leva o
+    nome do botão (é o que aparece no registro de uso) e um sufixo próprio de cada resposta."""
+
+    def __init__(self, bot):
+        super().__init__(timeout=900)
+        self.bot = bot
+        sufixo = os.urandom(4).hex()
+        for botao in self.children:
+            botao.custom_id = f"{botao.custom_id}:{sufixo}"
+
+    @discord.ui.button(label="Receita", emoji="🛠️", style=discord.ButtonStyle.primary, custom_id="mais:receita", row=0)
+    async def receita(self, interacao, _):
+        await interacao.response.send_modal(Pergunta(self.bot, "receita"))
+
+    @discord.ui.button(label="Meus alertas", emoji="🔔", style=discord.ButtonStyle.success, custom_id="mais:alertas", row=0)
+    async def alertas(self, interacao, _):
+        await botpessoal.abrir_alertas(self.bot, interacao)
+
+    @discord.ui.button(label="Ofertas", emoji="📉", style=discord.ButtonStyle.secondary, custom_id="mais:ofertas", row=1)
+    async def ofertas(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).ofertas(),
+                                              **resposta_privada(self.bot, "ofertas"))
+
+    @discord.ui.button(label="Lucro da guilda", emoji="💰", style=discord.ButtonStyle.secondary, custom_id="mais:lucro", row=1)
+    async def lucro(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(),
+                                              **resposta_privada(self.bot, "lucrativas"))
+
+    @discord.ui.button(label="Falta aprender", emoji="📚", style=discord.ButtonStyle.secondary, custom_id="mais:faltam", row=1)
+    async def faltam(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).faltam(),
+                                              **resposta_privada(self.bot, "faltam"))
+
+    @discord.ui.button(label="Consumíveis", emoji="🧪", style=discord.ButtonStyle.secondary, custom_id="mais:consumiveis", row=2)
+    async def consumiveis(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).consumiveis(),
+                                              **resposta_privada(self.bot, "consumiveis"))
+
+    @discord.ui.button(label="Desejos", emoji="📋", style=discord.ButtonStyle.secondary, custom_id="mais:desejos", row=2)
+    async def desejos(self, interacao, _):
+        await interacao.response.send_message(embed=(await self.bot.cartoes()).desejos(),
+                                              **resposta_privada(self.bot, "desejos"))
+
+
 class Painel(discord.ui.View):
-    """Mensagem fixa com botões. As respostas vão só para quem clicou. Os custom_id não mudam:
-    é por eles que os botões de um painel antigo continuam funcionando depois de reiniciar o bot."""
+    """Mensagem fixa com poucos botões: os mais usados à vista, o resto atrás de Mais. As respostas vão só
+    para quem clicou. Os custom_id não mudam: é por eles que os botões de um painel antigo continuam
+    funcionando depois de reiniciar o bot."""
 
     def __init__(self, bot):
         super().__init__(timeout=None)
         self.bot = bot
         if bot.cfg.url_site:
-            self.add_item(discord.ui.Button(label="Abrir o site", url=bot.cfg.url_site, row=3))
+            self.add_item(discord.ui.Button(label="Abrir o site", url=bot.cfg.url_site, row=1))
 
     @discord.ui.button(label="Preço", emoji="🔎", style=discord.ButtonStyle.primary, custom_id="gbx:preco", row=0)
     async def preco(self, interacao, _):
         await interacao.response.send_modal(Pergunta(self.bot, "preco"))
 
-    @discord.ui.button(label="Receita", emoji="🛠️", style=discord.ButtonStyle.primary, custom_id="gbx:receita", row=0)
-    async def receita(self, interacao, _):
-        await interacao.response.send_modal(Pergunta(self.bot, "receita"))
-
     @discord.ui.button(label="Quem faz", emoji="👥", style=discord.ButtonStyle.primary, custom_id="gbx:quemfaz", row=0)
     async def quemfaz(self, interacao, _):
         await interacao.response.send_modal(Pergunta(self.bot, "quemfaz"))
 
-    @discord.ui.button(label="Ofertas", emoji="📉", style=discord.ButtonStyle.secondary, custom_id="gbx:ofertas", row=1)
-    async def ofertas(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).ofertas(),
-                                              **resposta_privada(self.bot, "ofertas"))
-
-    @discord.ui.button(label="Lucro da guilda", emoji="💰", style=discord.ButtonStyle.secondary, custom_id="gbx:lucro", row=1)
-    async def lucro(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).lucrativas(),
-                                              **resposta_privada(self.bot, "lucrativas"))
-
-    @discord.ui.button(label="Consumíveis", emoji="🧪", style=discord.ButtonStyle.secondary, custom_id="gbx:consumiveis", row=1)
-    async def consumiveis(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).consumiveis(),
-                                              **resposta_privada(self.bot, "consumiveis"))
-
-    @discord.ui.button(label="Desejos", emoji="📋", style=discord.ButtonStyle.secondary, custom_id="gbx:desejos", row=1)
-    async def desejos(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).desejos(),
-                                              **resposta_privada(self.bot, "desejos"))
-
-    @discord.ui.button(label="Falta aprender", emoji="📚", style=discord.ButtonStyle.secondary, custom_id="gbx:faltam", row=1)
-    async def faltam(self, interacao, _):
-        await interacao.response.send_message(embed=(await self.bot.cartoes()).faltam(),
-                                              **resposta_privada(self.bot, "faltam"))
-
-    @discord.ui.button(label="Meu personagem", emoji="🧙", style=discord.ButtonStyle.success, custom_id="gbx:personagem", row=2)
+    @discord.ui.button(label="Meu personagem", emoji="🧙", style=discord.ButtonStyle.success, custom_id="gbx:personagem", row=0)
     async def personagem(self, interacao, _):
         await botpessoal.abrir_personagem(self.bot, interacao)
 
-    @discord.ui.button(label="Meus alertas", emoji="🔔", style=discord.ButtonStyle.success, custom_id="gbx:alertas", row=2)
-    async def alertas(self, interacao, _):
-        await botpessoal.abrir_alertas(self.bot, interacao)
+    @discord.ui.button(label="Mais", emoji="➕", style=discord.ButtonStyle.secondary, custom_id="gbx:mais", row=1)
+    async def mais(self, interacao, _):
+        cartao = discord.Embed(title="➕ Mais do Goblinomics", description=TEXTO_DO_MAIS, color=DOURADO)
+        await interacao.response.send_message(embed=cartao, view=Mais(self.bot), ephemeral=True)
 
-    @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=3)
+    @discord.ui.button(label="Como usar", emoji="❓", style=discord.ButtonStyle.secondary, custom_id="gbx:ajuda", row=1)
     async def ajuda(self, interacao, _):
         cartao = discord.Embed(title="❓ Como usar o Goblinomics", color=DOURADO, url=self.bot.cfg.url_site or None)
         for titulo, texto in INSTRUCOES:
@@ -394,9 +413,9 @@ class Painel(discord.ui.View):
 # Instruções do botão "Como usar": (título, texto) de cada bloco. Ao mudar o bot, revisar aqui.
 INSTRUCOES = (
     ("🔎 Consultar um item",
-     "**Preço**, **Receita** e **Quem faz** abrem uma janela pedindo o item. Digite um pedaço do nome, em português "
+     "**Preço** e **Quem faz**, no painel, e **Receita**, dentro de **Mais**, abrem uma janela pedindo o item. Digite um pedaço do nome, em português "
      "ou inglês, sem se preocupar com acento nem com a ordem das palavras. Se vários itens baterem, escolha na lista."),
-    ("📊 Listas prontas",
+    ("📊 Listas prontas, dentro de Mais",
      "**Ofertas**: itens 30% ou mais abaixo do habitual e com boa saída.\n"
      "**Lucro da guilda**: receitas que alguém da guilda sabe e dão lucro agora.\n"
      "**Consumíveis**: custo de hoje da lista de raide, por pessoa.\n"
@@ -405,7 +424,7 @@ INSTRUCOES = (
      "habilidade para aprender."),
     ("🧙 Só seu",
      "**Meu personagem**: escolha o seu uma vez e veja quais das suas receitas dão lucro. Dá para trocar quando quiser.\n"
-     "**Meus alertas**: até 10. Escolha item, preço-alvo e se quer aviso abaixo ou acima. O bot confere a cada foto "
+     "**Meus alertas**, dentro de **Mais**: até 10. Escolha item, preço-alvo e se quer aviso abaixo ou acima. O bot confere a cada foto "
      "nova e avisa em mensagem privada, uma vez por cruzamento. Precisa das mensagens diretas abertas para membros "
      "do servidor."),
     ("📣 Privado ou à vista de todos",
@@ -439,17 +458,20 @@ INSTRUCOES = (
 TEXTO_DO_PAINEL = (
     "Preços da casa de leilões, direto do Goblinomics. As respostas aparecem só para você.\n\n"
     "🔎 **Preço**: menor preço, habitual e vendas por dia de um item\n"
-    "🛠️ **Receita**: custo, lucro e quem da guilda fabrica\n"
     "👥 **Quem faz**: os artesãos da guilda para um item\n"
-    "📉 **Ofertas**: itens bem abaixo do preço habitual\n"
-    "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
-    "🧪 **Consumíveis**: custo de hoje dos consumíveis de raide, por pessoa\n"
-    "📋 **Desejos**: o que a guilda está juntando e se está bom para comprar\n"
-    "📚 **Falta aprender**: receitas que ninguém da guilda sabe e estão à venda agora\n"
     "🧙 **Meu personagem**: quais das suas receitas dão lucro agora\n"
-    "🔔 **Meus alertas**: aviso em privado quando um item chegar ao seu preço\n"
+    "➕ **Mais**: receitas, alertas de preço, ofertas e as listas da guilda\n"
     "❓ **Como usar**: instruções e como ler os números\n\n"
     "Para mostrar um resultado aos outros, use `/preco`, `/receita` ou `/quemfaz` em outro canal.")
+
+TEXTO_DO_MAIS = (
+    "🛠️ **Receita**: custo, lucro e quem da guilda fabrica\n"
+    "🔔 **Meus alertas**: aviso em privado quando um item chegar ao seu preço\n"
+    "📉 **Ofertas**: itens bem abaixo do preço habitual\n"
+    "💰 **Lucro da guilda**: receitas que a guilda sabe fazer e dão lucro agora\n"
+    "📚 **Falta aprender**: receitas que ninguém da guilda sabe e estão à venda agora\n"
+    "🧪 **Consumíveis**: custo de hoje dos consumíveis de raide, por pessoa\n"
+    "📋 **Desejos**: o que a guilda está juntando e se está bom para comprar")
 
 
 HORAS_DE_ATRASO = 3
