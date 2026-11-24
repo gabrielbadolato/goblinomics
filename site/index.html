@@ -264,9 +264,17 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
 .troca button { margin: 0; padding: 2px 7px; border: 0; border-left: 1px solid #000; background: none; cursor: pointer; font: inherit; color: var(--fraco); text-decoration: none; }
 .troca button:hover { color: #fff; }
 .troca button.ativo, .troca button.ativo:hover { background: linear-gradient(#ffe46b, #c79a12); color: #1a1400; font-weight: bold; cursor: default; }
-#bloco-mapas td.mats { white-space: normal; line-height: 1.7; }
-#bloco-mapas .mat { display: inline-block; margin-right: 12px; white-space: nowrap; }
-#bloco-mapas .nv { margin-left: 6px; font: 11px Arial, sans-serif; color: var(--fraco); }
+/* Mapas: nome e números estreitos à esquerda; os materiais ocupam o resto, lado a lado, em etiquetas. */
+#bloco-mapas td { vertical-align: top; padding-top: 8px; padding-bottom: 8px; border-top: 1px solid #000; }
+#bloco-mapas tbody tr { background: var(--fundo-lista); }
+#bloco-mapas tbody tr:nth-child(even) { background: var(--zebra); }
+#bloco-mapas td.nome { width: 1%; min-width: 0; white-space: nowrap; }
+#bloco-mapas td.nome > span { min-height: 0; padding-top: 0; }
+#bloco-mapas .ordem { display: inline-block; min-width: 22px; color: var(--fraco); }
+#bloco-mapas td.num { padding-left: 18px; }
+#bloco-mapas td.mats { width: auto; white-space: normal; padding-top: 5px; padding-bottom: 5px; }
+#bloco-mapas .mat { display: inline-block; margin: 2px 6px 2px 0; padding: 1px 8px; white-space: nowrap; border: 1px solid #3a3a3a; border-radius: 3px; background: rgba(255, 255, 255, .05); }
+#bloco-mapas .nv { display: block; margin-left: 22px; font: 11px Arial, sans-serif; color: var(--fraco); }
 .acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; max-width: 800px; margin-top: 10px; font-size: 13px; color: var(--fraco); }
 .acoes input { width: 74px; }
 #agora td.tipo-acao { color: var(--fraco); font: 12px Arial, sans-serif; white-space: nowrap; }
@@ -342,8 +350,11 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   .troca small { padding: 6px 8px; font-size: 12px; }
   .troca button { padding: 6px 11px; }
   #bloco-mapas th { white-space: normal; }
-  #bloco-mapas .mat { display: block; margin-right: 0; white-space: normal; }
-  #bloco-mapas .nv { display: block; margin-left: 0; }
+  #bloco-mapas td.nome { white-space: normal; }
+  #bloco-mapas td.num { padding-left: 8px; }
+  #bloco-mapas .ordem { min-width: 0; margin-right: 4px; }
+  #bloco-mapas .nv { margin-left: 0; }
+  #bloco-mapas .mat { display: block; margin: 0; padding: 1px 0; white-space: normal; border: 0; background: none; }
   #atualizado { display: none; }
   main { grid-template-columns: minmax(0, 1fr); padding: 6px; }
   #categorias { flex-direction: row; overflow-x: auto; max-height: none; scrollbar-width: none; }
@@ -1942,9 +1953,9 @@ function desenharMapas() {
   }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1) || b.mercado - a.mercado);
   const topo = linhas.filter(l => l.media != null && l.media === linhas[0].media).map(l => NOMES_PT ? zonas.zonas[l.z].pt : zonas.zonas[l.z].en);
   const melhor = !topo.length ? "" : `<p class="nota"><strong>${L("Melhor valor médio agora", "Best average value now")}:</strong> ${esc(topo.slice(0, 4).join(", "))}${topo.length > 4 ? L(` e mais ${topo.length - 4} empatados`, ` and ${topo.length - 4} more tied`) : ""}${topo.length > 1 ? L(" (empatados: rendem o mesmo material)", " (tied: same material)") : ""}.</p>`;
-  const corpo = linhas.map(l => {
+  const corpo = linhas.map((l, n) => {
     const zona = zonas.zonas[l.z];
-    return `<tr><td class="nome"><span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}</span></span></td>
+    return `<tr><td class="nome"><span><span class="ordem">${n + 1}.</span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}</span></span></td>
       <td class="num pos">${moedaOuTraco(l.media)}</td><td class="num sd">${moedaOuTraco(l.mercado || null)}</td>
       <td class="mats">${l.mats.map(m => `<span class="mat"><span class="q-${m.g.qualidade}">${esc(m.g.nome)}</span> ${moeda(m.lucro)}${m.raro ? couro ? " *" : ` <small>(${L("raro", "rare")})</small>` : ""}${m.confirmado ? " ✓" : ""}</span>`).join("")}</td></tr>`;
   }).join("");
