@@ -436,13 +436,13 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
   <div data-l="pt"><strong>Bem-vindo ao Goblinomics.</strong> O site lê a casa de leilões do WoW: Forever a cada hora e mostra onde está o lucro.
     <ul><li><strong>Leilões</strong>: a listagem real da casa de leilões, com o histórico de cada item.</li>
       <li><strong>Profissões</strong> e <strong>Resumo</strong>: o que vale fabricar e o que fazer agora.</li>
-      <li><strong>Coleta</strong>: em que mapas estão as ervas e os minérios mais valiosos.</li>
+      <li><strong>Coleta</strong>: em que mapas estão as ervas, os minérios e os couros mais valiosos.</li>
       <li><strong>Ofertas</strong> e <strong>Entre casas</strong>: o que está barato e o que revender em outra casa.</li></ul>
     Escolha a sua casa no seletor <strong>Casa</strong> (cada ruleset e facção tem a sua) e marque-a como padrão.</div>
   <div data-l="en"><strong>Welcome to Goblinomics.</strong> This site reads the WoW: Forever auction house every hour and shows where the profit is.
     <ul><li><strong>Auctions</strong>: the actual auction house listing, with each item's history.</li>
       <li><strong>Professions</strong> and <strong>Summary</strong>: what is worth crafting and what to do now.</li>
-      <li><strong>Gathering</strong>: which zones hold the most valuable herbs and ores.</li>
+      <li><strong>Gathering</strong>: which zones hold the most valuable herbs, ores and leathers.</li>
       <li><strong>Deals</strong> and <strong>Across houses</strong>: what is cheap and what to resell in another house.</li></ul>
     Pick your house in the <strong>House</strong> selector (each ruleset and faction has its own) and mark it as default.</div>
   <button class="acao" type="button" id="fechar-boas-vindas" style="margin-top:8px"><span data-l="pt">Entendi</span><span data-l="en">Got it</span></button>
@@ -1920,7 +1920,8 @@ function desenharMapas() {
   const bloco = $("bloco-mapas"), profs = Object.keys(zonas?.profissoes || {});
   if (!profs.length) { $("c-prof").innerHTML = ""; bloco.innerHTML = `<div class="vazio">${L("Tabela de mapas indisponível.", "Zone table unavailable.")}</div>`; return; }
   const atual = profs.includes(String(prefs.coleta)) ? String(prefs.coleta) : profs[0], ids = zonas.profissoes[atual];
-  const NOMES_COLETA = {182: L("Herbalismo", "Herbalism"), 186: L("Mineração", "Mining")};
+  const NOMES_COLETA = {182: L("Herbalismo", "Herbalism"), 186: L("Mineração", "Mining"), 393: L("Esfolamento", "Skinning")};
+  const couro = atual === "393";
   $("c-prof").innerHTML = `<small>${L("Profissão", "Profession")}</small>` + profs.map(p =>
     `<button type="button" data-v="${p}" class="${p === atual ? "ativo" : ""}" aria-pressed="${p === atual}">${NOMES_COLETA[p] || p}</button>`).join("");
   const porZona = new Map(), semMapa = [];
@@ -1938,15 +1939,18 @@ function desenharMapas() {
     return {z, mats: mats.sort((a, b) => b.lucro - a.lucro),
       media: base.length ? Math.round(base.reduce((s, m) => s + m.lucro, 0) / base.length) : null,
       mercado: Math.round(mats.reduce((s, m) => s + m.lucro * (m.g.vdia || 0), 0))};
-  }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1));
+  }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1) || b.mercado - a.mercado);
+  const topo = linhas.filter(l => l.media != null && l.media === linhas[0].media).map(l => NOMES_PT ? zonas.zonas[l.z].pt : zonas.zonas[l.z].en);
+  const melhor = !topo.length ? "" : `<p class="nota"><strong>${L("Melhor valor médio agora", "Best average value now")}:</strong> ${esc(topo.slice(0, 4).join(", "))}${topo.length > 4 ? L(` e mais ${topo.length - 4} empatados`, ` and ${topo.length - 4} more tied`) : ""}${topo.length > 1 ? L(" (empatados: rendem o mesmo material)", " (tied: same material)") : ""}.</p>`;
   const corpo = linhas.map(l => {
     const zona = zonas.zonas[l.z];
     return `<tr><td class="nome"><span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}</span></span></td>
       <td class="num pos">${moedaOuTraco(l.media)}</td><td class="num sd">${moedaOuTraco(l.mercado || null)}</td>
-      <td class="mats">${l.mats.map(m => `<span class="mat"><span class="q-${m.g.qualidade}">${esc(m.g.nome)}</span> ${moeda(m.lucro)}${m.raro ? ` <small>(${L("raro", "rare")})</small>` : ""}${m.confirmado ? " ✓" : ""}</span>`).join("")}</td></tr>`;
+      <td class="mats">${l.mats.map(m => `<span class="mat"><span class="q-${m.g.qualidade}">${esc(m.g.nome)}</span> ${moeda(m.lucro)}${m.raro ? couro ? " *" : ` <small>(${L("raro", "rare")})</small>` : ""}${m.confirmado ? " ✓" : ""}</span>`).join("")}</td></tr>`;
   }).join("");
   bloco.innerHTML = `<h2 class="titulo-bloco">${L("Mapas para coletar", "Zones to gather in")}</h2>
-    <p class="nota">${L("Para cada mapa, o que nasce lá e quanto vale agora, já sem a taxa do leilão. O valor médio trata os materiais comuns por igual e deixa os raros de fora: o site não sabe quantos pontos de coleta cada mapa tem, então isto indica onde está o material mais valioso, não o ouro por hora. Para a rota dentro do mapa, use os addons GatherMate2 e Routes no jogo.",
+    ${melhor}
+    <p class="nota">${couro ? L("<strong>No Esfolamento o couro depende do nível do monstro, não do mapa</strong>: os couros comuns foram distribuídos pela faixa de nível de cada mapa, e os de monstro específico (escamas, couro de devassauro e afins) pelos mapas onde esses monstros vivem. Os marcados com * ficam fora da média. ", "<strong>In Skinning the leather depends on the monster's level, not the zone</strong>: common leathers were spread by each zone's level range, and those from specific monsters (scales, devilsaur leather and the like) by the zones where those monsters live. Items marked * are left out of the average. ") : ""}${L("Para cada mapa, o que nasce lá e quanto vale agora, já sem a taxa do leilão. O valor médio trata os materiais comuns por igual e deixa os raros de fora: o site não sabe quantos pontos de coleta cada mapa tem, então isto indica onde está o material mais valioso, não o ouro por hora. Para a rota dentro do mapa, use os addons GatherMate2 e Routes no jogo.",
       "For each zone, what grows there and what it is worth now, after the auction house cut. The average treats common materials equally and leaves rare ones out: the site does not know how many nodes each zone has, so this shows where the most valuable material is, not gold per hour. For the route inside a zone, use the GatherMate2 and Routes addons in game.")}
       ${doClassic ? L("<strong>As zonas vêm do WoW Classic e ainda não foram conferidas no Forever</strong>; ✓ marca o que a guilda já confirmou.", "<strong>Zones come from WoW Classic and have not been checked in Forever yet</strong>; ✓ marks what the guild has confirmed.") : ""}</p>
     <div class="rolagem"><table>

@@ -1,5 +1,5 @@
 {
- "_leia": "Onde cada material de coleta nasce. Editado à mão. origem 'classic' = zonas do WoW Classic, não conferidas no Forever; 'guilda' = confirmado por alguém da guilda no Forever. raro = ponto raro, fica fora da média do mapa. Material de 'profissoes' sem entrada em 'materiais' aparece no site como 'sem mapa conhecido'.",
+ "_leia": "Onde cada material de coleta nasce. Editado à mão. origem 'classic' = zonas do WoW Classic, não conferidas no Forever; 'guilda' = confirmado por alguém da guilda no Forever. raro = ponto raro (ou, no Esfolamento, couro grosso/hide e couro de monstro específico), fica fora da média do mapa. Esfolamento (393): os couros comuns foram distribuídos pela faixa de nível do mapa, não por monstro. Material de 'profissoes' sem entrada em 'materiais' aparece no site como 'sem mapa conhecido'.",
  "zonas": {
   "durotar": {
    "pt": "Durotar",
@@ -363,6 +363,40 @@
    249391,
    249425,
    249426
+  ],
+  "393": [
+   2934,
+   2318,
+   783,
+   2319,
+   4232,
+   4234,
+   4235,
+   4304,
+   8169,
+   8170,
+   8171,
+   5082,
+   6470,
+   6471,
+   7428,
+   8167,
+   8368,
+   8154,
+   15408,
+   8165,
+   15415,
+   15412,
+   15416,
+   15423,
+   15417,
+   15422,
+   15419,
+   249427,
+   249428,
+   249429,
+   248825,
+   248824
   ]
  },
  "materiais": {
@@ -942,6 +976,323 @@
    "zonas": [
     "burningsteppes",
     "searing"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "2934": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil"
+   ],
+   "origem": "classic"
+  },
+  "2318": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil",
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge"
+   ],
+   "origem": "classic"
+  },
+  "783": {
+   "zonas": [
+    "durotar",
+    "mulgore",
+    "tirisfal",
+    "elwynn",
+    "dunmorogh",
+    "teldrassil",
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "2319": {
+   "zonas": [
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge",
+    "ashenvale",
+    "duskwood",
+    "hillsbrad",
+    "wetlands",
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace"
+   ],
+   "origem": "classic"
+  },
+  "4232": {
+   "zonas": [
+    "barrens",
+    "silverpine",
+    "westfall",
+    "lochmodan",
+    "darkshore",
+    "stonetalon",
+    "redridge",
+    "ashenvale",
+    "duskwood",
+    "hillsbrad",
+    "wetlands",
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "4234": {
+   "zonas": [
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands"
+   ],
+   "origem": "classic"
+  },
+  "4235": {
+   "zonas": [
+    "thousandneedles",
+    "alterac",
+    "arathi",
+    "stranglethorn",
+    "desolace",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "4304": {
+   "zonas": [
+    "stranglethorn",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands",
+    "searing",
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl"
+   ],
+   "origem": "classic"
+  },
+  "8169": {
+   "zonas": [
+    "stranglethorn",
+    "dustwallow",
+    "badlands",
+    "swamp",
+    "tanaris",
+    "feralas",
+    "hinterlands",
+    "searing",
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8170": {
+   "zonas": [
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl",
+    "epl",
+    "winterspring",
+    "silithus"
+   ],
+   "origem": "classic"
+  },
+  "8171": {
+   "zonas": [
+    "azshara",
+    "blasted",
+    "ungoro",
+    "felwood",
+    "burningsteppes",
+    "wpl",
+    "epl",
+    "winterspring",
+    "silithus"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "5082": {
+   "zonas": [
+    "mulgore",
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "6470": {
+   "zonas": [
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "6471": {
+   "zonas": [
+    "barrens"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "7428": {
+   "zonas": [
+    "swamp",
+    "stranglethorn"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8167": {
+   "zonas": [
+    "hinterlands",
+    "tanaris",
+    "dustwallow"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8368": {
+   "zonas": [
+    "felwood",
+    "badlands"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8154": {
+   "zonas": [
+    "tanaris",
+    "blasted"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15408": {
+   "zonas": [
+    "silithus",
+    "burningsteppes"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "8165": {
+   "zonas": [
+    "badlands",
+    "dustwallow",
+    "swamp"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15415": {
+   "zonas": [
+    "azshara",
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15412": {
+   "zonas": [
+    "swamp",
+    "feralas"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15416": {
+   "zonas": [
+    "burningsteppes"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15423": {
+   "zonas": [
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15417": {
+   "zonas": [
+    "ungoro"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15422": {
+   "zonas": [
+    "winterspring"
+   ],
+   "origem": "classic",
+   "raro": true
+  },
+  "15419": {
+   "zonas": [
+    "felwood",
+    "wpl",
+    "winterspring"
    ],
    "origem": "classic",
    "raro": true
