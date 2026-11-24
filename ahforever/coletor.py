@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
-from . import alertas, banco, bonus, catalogo, config, exportar, guilda, habitual, publicar, receitas, vendas, wowhead
+from . import addon, alertas, banco, bonus, catalogo, config, exportar, guilda, habitual, publicar, receitas, vendas, wowhead
 from .api import ClienteBlizzard, ErroAPI
 from .resumo import resumir
 
@@ -137,6 +137,14 @@ def sondar(cfg, api):
                     print(f"    exemplo: {anuncios[0]}")
 
 
+def _addon(cfg):
+    # O addon do jogo é um extra: se o arquivo dele falhar, o site é publicado do mesmo jeito.
+    try:
+        addon.gerar(cfg)
+    except Exception as e:
+        print(f"addon: não gerado ({e})")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Monitor da casa de leilões do WoW: Forever")
     parser.add_argument("comando", choices=["coletar", "catalogar", "receitas", "bonus", "guilda", "exportar", "publicar", "sondar"])
@@ -151,6 +159,7 @@ def main():
         return
     if args.comando in ("exportar", "publicar"):
         exportar.exportar(cfg)
+        _addon(cfg)
         publicar.publicar(cfg)
         return
     # O timer tenta mais vezes do que a Blizzard publica. Sem foto nova, só o carimbo da
@@ -176,6 +185,7 @@ def main():
     except Exception as e:
         print(f"guilda: adiada para a próxima rodada ({e})")
     exportar.exportar(cfg)
+    _addon(cfg)
     publicar.publicar(cfg)
     # Um defeito nos alertas (regra mal escrita, Discord fora do ar) não pode derrubar a coleta.
     try:

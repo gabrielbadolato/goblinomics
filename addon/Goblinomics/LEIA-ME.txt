@@ -1,0 +1,30 @@
+Goblinomics - addon pessoal
+===========================
+
+Mostra na dica de cada item os numeros do site: menor preco, media de 7 dias,
+vendas por dia, quantidade a venda e, quando o item e fabricavel, custo e lucro.
+
+Instalar
+--------
+1. No Battle.net, clique na engrenagem ao lado de "Jogar" e em "Mostrar no Explorer".
+2. Entre na pasta do jogo e depois em Interface\AddOns.
+3. Copie a pasta "Goblinomics" inteira para la.
+4. Dentro dela, de dois cliques em atualizar.bat (baixa os precos de agora).
+5. De dois cliques em agendar.bat (o Windows passa a baixar sozinho a cada 20 minutos).
+6. Abra o jogo. Na tela de personagens, em AddOns, confira se "Goblinomics" esta marcado.
+
+No jogo
+-------
+- Passe o mouse num item: as linhas do Goblinomics aparecem no fim da dica.
+- O jogo so le precos novos ao entrar com o personagem ou com /reload.
+  Quando os precos carregados passam de 1h15, aparece um botao no alto da tela:
+  clique para recarregar; clique direito para esconder.
+- /gob            mostra a idade dos dados e a ajuda
+- /gob atualizar  recarrega a interface
+- /gob aviso      liga ou desliga o botao
+
+Desinstalar
+-----------
+Rode desagendar.bat e apague a pasta Goblinomics de Interface\AddOns.
+
+O addon so le dados. Ele nao compra, nao anuncia e nao envia nada.
