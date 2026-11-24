@@ -2,6 +2,7 @@
 -- O jogo não acessa a internet: os dados vêm do Dados.lua desta pasta, que o atualizar.bat baixa do
 -- site. O jogo só relê esse arquivo ao entrar com o personagem ou com /reload.
 
+local VERSAO = "1.1"
 local D = GoblinomicsDados
 local OURO, CINZA, VERDE, VERMELHO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050"
 -- A coleta é de hora em hora; passado isto, quase sempre já existe arquivo mais novo no disco.
@@ -15,8 +16,19 @@ local function moeda(cobre)
   cobre = math.floor(cobre + 0.5)
   local sinal = cobre < 0 and "-" or ""
   cobre = math.abs(cobre)
-  if GetCoinTextureString then return sinal .. GetCoinTextureString(cobre) end
-  return sinal .. string.format("%dg %ds %dc", math.floor(cobre / 10000), math.floor(cobre / 100) % 100, cobre % 100)
+  -- Com os ícones de moeda do jogo quando o cliente os oferece (a função mudou de lugar entre versões).
+  local icones = GetCoinTextureString or (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString)
+  if icones then
+    local ok, texto = pcall(icones, cobre)
+    if ok and texto and texto ~= "" then return sinal .. texto end
+  end
+  local ouro, prata, resto = math.floor(cobre / 10000), math.floor(cobre / 100) % 100, cobre % 100
+  local partes = {}
+  if ouro > 0 then partes[#partes + 1] = "|cffffd700" .. ouro .. "g|r" end
+  if prata > 0 or ouro > 0 then partes[#partes + 1] = "|cffc7c7cf" .. prata .. "s|r" end
+  -- Com ouro na conta, o cobre só polui.
+  if ouro == 0 then partes[#partes + 1] = "|cffeda55f" .. resto .. "c|r" end
+  return sinal .. table.concat(partes, " ")
 end
 
 local function idade()
@@ -104,6 +116,7 @@ end
 
 local botao
 local dispensado = false
+local emTeste = false
 
 local function recarregar()
   if InCombatLockdown and InCombatLockdown() then
@@ -117,7 +130,7 @@ local function conferir()
   if not botao then return end
   local s = idade()
   local mostrar = s and s > AVISAR_APOS and not dispensado and GoblinomicsOpcoes.aviso
-  if mostrar then
+  if mostrar or emTeste then
     botao:SetText("Goblinomics: preços de " .. textoIdade() .. " - atualizar")
     botao:SetWidth(botao:GetTextWidth() + 30)
     botao:Show()
@@ -132,7 +145,11 @@ local function criarBotao()
   botao:SetPoint("TOP", UIParent, "TOP", 0, -28)
   botao:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   botao:SetScript("OnClick", function(_, tecla)
-    if tecla == "RightButton" then
+    if emTeste then
+      -- No teste o clique só esconde: recarregar aqui pegaria a pessoa de surpresa.
+      emTeste = false
+      conferir()
+    elseif tecla == "RightButton" then
       dispensado = true
       botao:Hide()
     else
@@ -177,13 +194,22 @@ SlashCmdList["GOBLINOMICS"] = function(texto)
     conferir()
   elseif texto == "atualizar" or texto == "reload" then
     recarregar()
+  elseif texto == "teste" then
+    if not botao then
+      dizer("sem dados carregados, não há botão para mostrar.")
+    else
+      emTeste = true
+      conferir()
+      dizer("o botão está no alto da tela, no centro. Neste teste, clicar nele só o esconde.")
+    end
   else
     if D then
-      dizer(string.format("%d itens de %s, coletados %s.", D.n or 0, D.casa or "?", textoIdade()))
+      dizer(string.format("versão %s. %d itens de %s, coletados %s.", VERSAO, D.n or 0, D.casa or "?", textoIdade()))
     else
       dizer("sem dados. Rode o atualizar.bat e depois /reload.")
     end
     dizer("/gob atualizar - recarrega a interface para ler os preços novos")
+    dizer("/gob teste - mostra o botão agora, para ver onde ele fica")
     dizer("/gob aviso - liga ou desliga o botão que aparece quando os preços passam de 1h15")
   end
 end

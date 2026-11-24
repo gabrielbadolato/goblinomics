@@ -21,7 +21,11 @@ No jogo
   clique para recarregar; clique direito para esconder.
 - /gob            mostra a idade dos dados e a ajuda
 - /gob atualizar  recarrega a interface
+- /gob teste      mostra o botao agora, para ver onde ele fica
 - /gob aviso      liga ou desliga o botao
+
+O atualizar.bat baixa os precos e tambem o codigo do addon (Goblinomics.lua e
+Goblinomics.toc), entao os ajustes chegam sozinhos e valem no proximo /reload.
 
 Desinstalar
 -----------

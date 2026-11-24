@@ -14,6 +14,7 @@ from .config import RAIZ
 FONTES = RAIZ / "addon" / "Goblinomics"
 # Arquivos que o Windows lê: precisam de fim de linha CRLF.
 DO_WINDOWS = (".bat", ".vbs", ".txt")
+NO_SITE = ("Goblinomics.lua", "Goblinomics.toc")
 
 
 def linhas(dados):
@@ -75,6 +76,11 @@ def gerar(cfg):
     destino.mkdir(parents=True, exist_ok=True)
     texto = lua(dados).encode()
     _trocar(destino / "Dados.lua", texto)
+    # O código do addon também vai ao site: o atualizar.bat o baixa, e um ajuste chega sem reinstalar.
+    # Só o Lua e o .toc, que rodam presos dentro do jogo; os scripts do Windows não se atualizam sozinhos.
+    for nome in NO_SITE:
+        if (FONTES / nome).exists():
+            _trocar(destino / nome, (FONTES / nome).read_bytes())
     if FONTES.is_dir():
         temporario = destino / "Goblinomics.tmp"
         with zipfile.ZipFile(temporario, "w", zipfile.ZIP_DEFLATED) as z:

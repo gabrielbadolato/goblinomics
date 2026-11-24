@@ -53,6 +53,8 @@ class TestAddon(unittest.TestCase):
             finally:
                 addon.consulta.Dados = original
             self.assertIn(b"[30]={h=80},", (Path(pasta) / "addon" / "Dados.lua").read_bytes())
+            self.assertIn(b"SLASH_GOBLINOMICS1", (Path(pasta) / "addon" / "Goblinomics.lua").read_bytes())
+            self.assertIn(b"Interface", (Path(pasta) / "addon" / "Goblinomics.toc").read_bytes())
             with zipfile.ZipFile(Path(pasta) / "addon" / "Goblinomics.zip") as z:
                 nomes = z.namelist()
                 self.assertIn("Goblinomics/Goblinomics.toc", nomes)
