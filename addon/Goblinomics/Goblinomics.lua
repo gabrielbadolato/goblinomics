@@ -2,7 +2,7 @@
 -- O jogo não acessa a internet: os dados vêm do Dados.lua desta pasta, que o atualizar.bat baixa do
 -- site. O jogo só relê esse arquivo ao entrar com o personagem ou com /reload.
 
-local VERSAO = "1.2"
+local VERSAO = "1.2.1"
 local D = GoblinomicsDados
 local OURO, CINZA, VERDE, VERMELHO, BRANCO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050", "|cffffffff"
 local ICONE = "Interface\\AddOns\\Goblinomics\\Icone"
@@ -32,6 +32,14 @@ local function moeda(cobre)
   -- Com ouro na conta, o cobre só polui.
   if ouro == 0 then partes[#partes + 1] = "|cffeda55f" .. resto .. "c|r" end
   return sinal .. table.concat(partes, " ")
+end
+
+-- 35601.4 -> "35.601"; abaixo de 100 mantém uma casa decimal quando pedida.
+local function numero(n, decimal)
+  if decimal and n < 100 then return (string.gsub(string.format("%.1f", n), "%.", ",")) end
+  local texto = tostring(math.floor(n + 0.5))
+  local com_pontos = string.gsub(string.reverse(texto), "(%d%d%d)", "%1.")
+  return (string.gsub(string.reverse(com_pontos), "^%.", ""))
 end
 
 local function idade()
@@ -87,17 +95,22 @@ local function acrescentar(dica, id)
     end
     par(dica, "Média de 7 dias", moeda(i.h) .. variacao)
   end
-  if i.d then par(dica, "Vendas por dia", string.format("~%.1f", i.d)) end
-  if i.q then par(dica, "À venda agora", tostring(i.q)) end
+  if i.d then par(dica, "Vendas por dia", "~" .. numero(i.d, true)) end
+  if i.q then par(dica, "À venda agora", numero(i.q)) end
   if i.m and i.h and i.d and i.d >= 1 and i.m <= i.h * PECHINCHA then
     dica:AddLine(VERDE .. "Pechincha: bem abaixo da média e com saída|r")
   end
   if i.n then
     dica:AddLine(VERMELHO .. "Vale mais vender ao NPC (" .. moeda(i.n) .. "|r" .. VERMELHO .. ") que no leilão|r")
   end
-  if i.c then par(dica, "Custo de fabricar", moeda(i.c)) end
-  if i.l then par(dica, "Lucro de fabricar", (i.l >= 0 and VERDE or VERMELHO) .. moeda(i.l) .. "|r") end
-  if i.g then frase(dica, "Quem faz na guilda", i.g) end
+  -- Material que também dá para fabricar com prejuízo (couro a partir de couro menor, barra, tecido):
+  -- custo, lucro e quem faz só enchem a dica; quem quer o material compra ou coleta.
+  local soMaterial = i.u and (not i.l or i.l < 0)
+  if not soMaterial then
+    if i.c then par(dica, "Custo de fabricar", moeda(i.c)) end
+    if i.l then par(dica, "Lucro de fabricar", (i.l >= 0 and VERDE or VERMELHO) .. moeda(i.l) .. "|r") end
+    if i.g then frase(dica, "Quem faz na guilda", i.g) end
+  end
   -- Item fabricável: a receita que o ensina, o preço dela e onde consegui-la.
   local receita = i.r and D.itens[i.r]
   if receita then
@@ -108,7 +121,7 @@ local function acrescentar(dica, id)
   if i.o then frase(dica, "Onde conseguir", i.o) end
   if i.u then
     local lucrativas = i.ul and (", " .. VERDE .. i.ul .. " com lucro agora|r") or ""
-    frase(dica, "Usado em", i.u .. (i.u == 1 and " receita" or " receitas") .. lucrativas)
+    frase(dica, "Usado em", numero(i.u) .. (i.u == 1 and " receita" or " receitas") .. lucrativas)
   end
   if i.z then frase(dica, "Onde coletar", i.z) end
   dica:Show()

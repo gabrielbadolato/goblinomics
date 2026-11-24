@@ -73,7 +73,7 @@ def linhas(dados, origens=None, zonas=None):
     """Uma linha Lua por item. Preços em cobre: m menor preço, h média de 7 dias, d vendas por dia,
     q quantidade à venda, c custo e l lucro da receita que mais rende (por unidade), n quanto o NPC paga
     quando isso supera o leilão sem a taxa. Textos: g quem da guilda faz, o onde conseguir (item de
-    receita), z mapas onde se coleta. Números: r item que ensina a receita, u em quantas receitas o
+    receita), z mapas onde se coleta (menos os da tabela feita à mão). Números: r item que ensina a receita, u em quantas receitas o
     material entra e ul em quantas delas com lucro agora."""
     origens, zonas = origens or {}, zonas or {}
     faccao = "H" if "horde" in dados.casa["nome"].lower() else "A" if "alliance" in dados.casa["nome"].lower() else ""
@@ -121,7 +121,9 @@ def linhas(dados, origens=None, zonas=None):
             if com_lucro[item_id]:
                 campos.append(f"ul={com_lucro[item_id]}")
         mapas = zonas.get("materiais", {}).get(str(item_id))
-        if mapas:
+        # Só os mapas que vêm da QuestieDB ou da guilda: a tabela feita à mão (couros, por faixa de nível)
+        # precisa do aviso que o site dá, e na dica do jogo não cabe.
+        if mapas and mapas.get("origem") != "classic":
             campos.append("z=" + _texto(_lista(zonas["zonas"][k]["en"] for k in mapas["zonas"])))
         if campos:
             saida.append(f"[{item_id}]={{{','.join(campos)}}},")

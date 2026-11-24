@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Goblinomics
 ## Notes: Preços do Goblinomics na dica do item (dados baixados pelo atualizar.bat)
-## Version: 1.2
+## Version: 1.2.1
 ## SavedVariables: GoblinomicsOpcoes
 Dados.lua
 Goblinomics.lua
