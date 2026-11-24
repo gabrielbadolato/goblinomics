@@ -237,6 +237,8 @@ local function desenhar()
     if dados then
       local textura = dados.id and iconeDe(dados.id)
       if textura then linha.icone:SetTexture(textura); linha.icone:Show() else linha.icone:Hide() end
+      -- Título de seção e linha só de texto ocupam a largura toda; as outras dividem com as colunas.
+      linha.esq:SetWidth((dados.titulo or not (dados.meio or dados.dir)) and 640 or 270)
       linha.esq:SetText(dados.titulo and (OURO .. dados.titulo .. "|r") or (dados.esq or ""))
       linha.meio:SetText(dados.meio or "")
       linha.dir:SetText(dados.dir or "")
@@ -252,7 +254,15 @@ local function desenhar()
     if b.chave == abaAtual then b:LockHighlight() else b:UnlockHighlight() end
   end
   if aba.acao then janela.acao:SetText(aba.acao.rotulo); janela.acao:Show() else janela.acao:Hide() end
-  if aba.alternar then janela.alternar:SetText(aba.alternar.rotulo()); janela.alternar:Show() else janela.alternar:Hide() end
+  if aba.alternar then
+    janela.alternar:SetText(aba.alternar.rotulo())
+    -- Sem o botão de ação ao lado, o de alternar ocupa o canto.
+    janela.alternar:ClearAllPoints()
+    if aba.acao then janela.alternar:SetPoint("LEFT", janela.acao, "RIGHT", 8, 0) else janela.alternar:SetPoint("BOTTOMLEFT", 16, 14) end
+    janela.alternar:Show()
+  else
+    janela.alternar:Hide()
+  end
 end
 
 local function montar()
