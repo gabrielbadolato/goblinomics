@@ -2,7 +2,10 @@
 -- O jogo não acessa a internet: os dados vêm do Dados.lua desta pasta, que o atualizar.bat baixa do
 -- site. O jogo só relê esse arquivo ao entrar com o personagem ou com /reload.
 
-local VERSAO = "1.2.1"
+-- G: a tabela do addon, que o jogo entrega a todos os arquivos dele; é por ela que a Janela.lua usa o que está aqui.
+local _, G = ...
+G = G or {}
+local VERSAO = "1.3"
 local D = GoblinomicsDados
 local OURO, CINZA, VERDE, VERMELHO, BRANCO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050", "|cffffffff"
 local ICONE = "Interface\\AddOns\\Goblinomics\\Icone"
@@ -62,6 +65,43 @@ local function resumo()
   return string.format("%d itens de %s, coletados %s", D.n or 0, D.casa or "?", textoIdade())
 end
 
+-- ---- Auctionator: o preço do último scan da pessoa, quando ele é de hoje ----
+
+local QUEM_CHAMA = "Goblinomics"
+
+local function precoDoScan(id)
+  local api = Auctionator and Auctionator.API and Auctionator.API.v1
+  if not api or not api.GetAuctionPriceByItemID then return nil end
+  local ok, preco = pcall(api.GetAuctionPriceByItemID, QUEM_CHAMA, id)
+  if not ok or type(preco) ~= "number" then return nil end
+  local dias
+  if api.GetAuctionAgeByItemID then
+    local okIdade, idadeEmDias = pcall(api.GetAuctionAgeByItemID, QUEM_CHAMA, id)
+    if okIdade then dias = idadeEmDias end
+  end
+  return preco, dias
+end
+
+-- Lucro por unidade de fabricar o item com os preços do scan: venda pelo scan (só se for de hoje) menos a
+-- taxa de 5%, materiais pelo scan, pelo NPC quando sai mais barato, ou pelo Goblinomics quando o scan não tem.
+local function lucroPeloScan(id)
+  local f = D and D.fab and D.fab[id]
+  if not f then return nil end
+  local venda, dias = precoDoScan(id)
+  if not venda or dias ~= 0 then return nil end
+  local custo = 0
+  for k = 1, #f.m, 2 do
+    local material, quantidade = f.m[k], f.m[k + 1]
+    local preco = precoDoScan(material)
+    local npc = D.npc and D.npc[material]
+    if npc and (not preco or npc <= preco) then preco = npc end
+    if not preco then preco = D.itens[material] and D.itens[material].m end
+    if not preco then return nil end
+    custo = custo + preco * quantidade
+  end
+  return venda * 0.95 - custo / (f.f or 1)
+end
+
 -- ---- Dica do item ----
 
 local function par(dica, rotulo, valor)
@@ -109,6 +149,10 @@ local function acrescentar(dica, id)
   if not soMaterial then
     if i.c then par(dica, "Custo de fabricar", moeda(i.c)) end
     if i.l then par(dica, "Lucro de fabricar", (i.l >= 0 and VERDE or VERMELHO) .. moeda(i.l) .. "|r") end
+    local ok, peloScan = pcall(lucroPeloScan, id)
+    if ok and peloScan then
+      par(dica, "Lucro pelo seu scan de hoje", (peloScan >= 0 and VERDE or VERMELHO) .. moeda(peloScan) .. "|r")
+    end
     if i.g then frase(dica, "Quem faz na guilda", i.g) end
   end
   -- Item fabricável: a receita que o ensina, o preço dela e onde consegui-la.
@@ -403,7 +447,18 @@ local function criarBotaoDoMinimapa()
   borda:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 
   b:SetScript("OnClick", function(_, tecla)
-    if tecla == "RightButton" then recarregar() else alternarPainel() end
+    if tecla == "RightButton" then
+      recarregar()
+    elseif G.alternarJanela then
+      -- Se a janela der erro ao abrir, o painel de opções ainda abre.
+      local ok, erro = pcall(G.alternarJanela)
+      if not ok then
+        dizer("a janela falhou: " .. tostring(erro))
+        alternarPainel()
+      end
+    else
+      alternarPainel()
+    end
   end)
   b:SetScript("OnDragStart", function(self)
     self:SetScript("OnUpdate", function(eu)
@@ -420,7 +475,7 @@ local function criarBotaoDoMinimapa()
     GameTooltip:AddLine("Goblinomics " .. VERSAO)
     GameTooltip:AddLine(resumo(), 1, 1, 1, true)
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine("Clique: abre o painel.", 0.78, 0.78, 0.78)
+    GameTooltip:AddLine("Clique: abre a janela.", 0.78, 0.78, 0.78)
     GameTooltip:AddLine("Clique direito: recarrega para ler os preços novos.", 0.78, 0.78, 0.78)
     GameTooltip:AddLine("Arraste: muda o botão de lugar.", 0.78, 0.78, 0.78)
     GameTooltip:Show()
@@ -428,6 +483,11 @@ local function criarBotaoDoMinimapa()
   b:SetScript("OnLeave", function() GameTooltip:Hide() end)
   posicionar(b)
 end
+
+-- O que a Janela.lua usa daqui.
+G.VERSAO, G.D, G.ICONE = VERSAO, D, ICONE
+G.dizer, G.moeda, G.numero, G.resumo, G.recarregar, G.alternarPainel = dizer, moeda, numero, resumo, recarregar, alternarPainel
+G.precoDoScan, G.QUEM_CHAMA = precoDoScan, QUEM_CHAMA
 
 -- ---- Entrada no jogo ----
 
@@ -443,7 +503,7 @@ quadro:SetScript("OnEvent", function()
     dizer("sem dados. Rode o atualizar.bat da pasta do addon e recarregue.")
     return
   end
-  dizer(resumo() .. ". Clique na moeda do minimapa para abrir o painel.")
+  dizer(resumo() .. ". Clique na moeda do minimapa para abrir a janela.")
   ok, erro = pcall(criarAviso)
   if not ok then dizer("o botão de aviso falhou: " .. tostring(erro)) end
   conferir()
@@ -472,8 +532,10 @@ SlashCmdList["GOBLINOMICS"] = function(texto)
     end
   elseif texto == "diag" then
     for linha in string.gmatch(diagnostico(), "[^\n]+") do dizer(linha) end
+  elseif texto == "opcoes" or texto == "opções" then
+    alternarPainel()
   else
     dizer("versão " .. VERSAO .. ". " .. resumo() .. ".")
-    alternarPainel()
+    if G.alternarJanela then G.alternarJanela() else alternarPainel() end
   end
 end

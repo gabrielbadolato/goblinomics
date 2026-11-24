@@ -18,7 +18,7 @@ DO_WINDOWS = (".bat", ".vbs", ".txt")
 # O que o atualizar.bat baixa do site, e o texto que cada arquivo certo contém ("-" = não confere, é imagem).
 # Código novo do addon entra aqui; o .bat só aceita .lua, .toc e .tga.
 ARQUIVOS = (("Dados.lua", "GoblinomicsDados"), ("Goblinomics.lua", "SLASH_GOBLINOMICS1"),
-            ("Goblinomics.toc", "Interface"), ("Icone.tga", "-"))
+            ("Janela.lua", "GoblinomicsJanela"), ("Goblinomics.toc", "Interface"), ("Icone.tga", "-"))
 # O atualizar.bat também fica no site para ser baixado à mão com curl (arquivo baixado assim não fica
 # bloqueado pelo Windows, ao contrário do que sai de um zip); ele não se atualiza sozinho.
 NO_SITE = tuple(nome for nome, _ in ARQUIVOS if nome != "Dados.lua") + ("atualizar.bat",)
@@ -130,6 +130,57 @@ def linhas(dados, origens=None, zonas=None):
     return saida
 
 
+MAX_OFERTAS = 60
+PROFISSOES_DE_COLETA = {"182": "e", "186": "m"}   # ervas e minérios; os couros ficam de fora (tabela feita à mão)
+
+
+def listas(dados, zonas=None):
+    """As tabelas da janela do addon, cada uma já como texto Lua: fab (como se fabrica cada item, para a
+    aba de profissões e para recalcular o lucro com o scan do Auctionator), npc (materiais de vendedor),
+    ofertas (pechinchas, da maior para a menor), coleta (mapas com o que nasce em cada um) e nomes."""
+    zonas = zonas or {}
+    nomes = set()
+    # Quem sabe cada receita, entre a guilda e os personagens avulsos: "|Nome|Nome|".
+    sabe = {}
+    for nome, membro in sorted(getattr(dados, "personagens", {}).items()):
+        for rid in membro["receitas"]:
+            sabe.setdefault(rid, []).append(nome.replace("|", ""))
+    fab = []
+    for item_id in sorted(getattr(dados, "receitas", {})):
+        feitas = [f for f in dados.fabricar(item_id) if f["custo"] is not None]
+        if not feitas:
+            continue
+        melhor = max(feitas, key=lambda f: f["lucro"] if f["lucro"] is not None else -f["custo"])
+        materiais = ",".join(f"{m[0]},{m[1]}" for m in melhor["materiais"])
+        campos = [f"p={_texto(melhor['profissao'])}", f"f={melhor['feitos']:g}", f"m={{{materiais}}}"]
+        if sabe.get(melhor["rid"]):
+            campos.append("q=" + _texto("|" + "|".join(sabe[melhor["rid"]]) + "|"))
+        fab.append(f"[{item_id}]={{{','.join(campos)}}},")
+        nomes.add(item_id)
+        nomes.update(m[0] for m in melhor["materiais"])
+    ofertas = [o[0] for o in dados.ofertas(limite=MAX_OFERTAS)] if hasattr(dados, "ofertas") else []
+    nomes.update(ofertas)
+    por_zona = {}
+    for prof, letra in PROFISSOES_DE_COLETA.items():
+        for item_id in zonas.get("profissoes", {}).get(prof, []):
+            info = zonas["materiais"].get(str(item_id))
+            if not info or info.get("origem") == "classic":
+                continue
+            nomes.add(item_id)
+            for chave in info["zonas"]:
+                por_zona.setdefault(chave, {"e": [], "m": [], "r": []})["r" if info.get("raro") else letra].append(item_id)
+    coleta = []
+    for chave, z in zonas.get("zonas", {}).items():
+        if chave in por_zona:
+            nivel = f"{z['nivel'][0]}-{z['nivel'][1]}" if z.get("nivel") else ""
+            grupos = ",".join(f"{letra}={{{','.join(map(str, ids))}}}" for letra, ids in por_zona[chave].items() if ids)
+            coleta.append(f"{{z={_texto(z['en'])},nv={_texto(nivel)},{grupos}}},")
+    npc = [f"[{i}]={p}," for i, p in sorted(getattr(dados, "npc", {}).items())]
+    nomeados = [f"[{i}]={_texto(dados.itens[i][0])}," for i in sorted(nomes) if i in getattr(dados, "itens", {})]
+    return {"fab": fab, "npc": npc, "ofertas": [",".join(map(str, ofertas)) + ","] if ofertas else [],
+            "coleta": coleta, "nomes": nomeados}
+
+
 def lua(dados, origens=None, zonas=None):
     coletado = int(datetime.fromisoformat(dados.coletado_em.replace("Z", "+00:00")).timestamp())
     itens = linhas(dados, origens, zonas)
@@ -143,6 +194,7 @@ def lua(dados, origens=None, zonas=None):
         "itens={",
         *itens,
         "},",
+        *(linha for nome, linhas_da_tabela in listas(dados, zonas).items() for linha in (f"{nome}={{", *linhas_da_tabela, "},")),
         "}",
         "",
     ])
@@ -185,4 +237,4 @@ def gerar(cfg):
                 z.writestr(f"Goblinomics/{fonte.name}", _para_windows(fonte))
             z.writestr("Goblinomics/Dados.lua", texto)
         os.replace(temporario, destino / "Goblinomics.zip")
-    print(f"addon: {dados.casa['nome']}, {texto.count(b'\n') - 8} itens")
+    print(f"addon: {dados.casa['nome']}, {len(texto) // 1024} KB")

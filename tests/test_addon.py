@@ -27,8 +27,10 @@ class Falso:
     def fabricar(self, i):
         if i != 20:
             return []
-        return [{"custo": 600, "lucro": 200, "feitos": 2, "quem": ["Zé", "Ana"]}, {"custo": None, "lucro": None, "feitos": 1},
-                {"custo": 100, "lucro": 50, "feitos": 1, "quem": ["Ana"]}]
+        comum = {"rid": 1, "profissao": "Alquimia", "materiais": [(10, 2, 300, "leilão")]}
+        return [{**comum, "custo": 600, "lucro": 200, "feitos": 2, "quem": ["Zé", "Ana"]},
+                {**comum, "custo": None, "lucro": None, "feitos": 1},
+                {**comum, "custo": 100, "lucro": 50, "feitos": 1, "quem": ["Ana"]}]
 
 
 class TestAddon(unittest.TestCase):
@@ -63,6 +65,29 @@ class TestAddon(unittest.TestCase):
         self.assertIn("n=3,", texto)
         self.assertEqual(texto.count("{"), texto.count("}"))
 
+    def test_listas_da_janela(self):
+        falso = Falso()
+        falso.itens = {10: ["Erva"], 20: ["Poção"]}
+        falso.personagens = {"Ana Luz": {"receitas": [7]}, "Zé": {"receitas": [7, 8]}}
+        falso.fabricar = lambda i: [{"rid": 7, "profissao": "Alquimia", "custo": 600, "lucro": 200, "feitos": 2.0,
+                                     "materiais": [(10, 2, 300, "leilão")], "quem": []}] if i == 20 else []
+        falso.ofertas = lambda limite: [(10, 500, 900, 30.0)]
+        zonas = {"zonas": {"wpl": {"en": "Western Plaguelands", "nivel": [51, 58]}, "hyjal": {"en": "Mount Hyjal", "nivel": None}},
+                 "profissoes": {"182": [10], "186": [30], "393": [20]},
+                 "materiais": {"10": {"zonas": ["wpl", "hyjal"], "origem": "questie"},
+                               "30": {"zonas": ["wpl"], "origem": "forever", "raro": True},
+                               "20": {"zonas": ["wpl"], "origem": "classic"}}}
+        l = addon.listas(falso, zonas)
+        self.assertEqual(l["fab"], ['[20]={p="Alquimia",f=2,m={10,2},q="|Ana Luz|Zé|"},'])
+        self.assertEqual(l["ofertas"], ["10,"])
+        # O couro (tabela feita à mão) fica de fora; o raro vai em r; mapa novo sem faixa de nível.
+        self.assertEqual(l["coleta"], ['{z="Western Plaguelands",nv="51-58",e={10},r={30}},', '{z="Mount Hyjal",nv="",e={10}},'])
+        self.assertEqual(l["nomes"], ['[10]="Erva",', '[20]="Poção",'])
+        texto = addon.lua(falso, None, zonas)
+        self.assertEqual(texto.count("{"), texto.count("}"))
+        for tabela in ("fab={", "npc={", "ofertas={", "coleta={", "nomes={"):
+            self.assertIn("\n" + tabela, texto)
+
     def test_gerar_grava_o_arquivo_e_o_zip_com_crlf_nos_scripts(self):
         with tempfile.TemporaryDirectory() as pasta:
             cfg = SimpleNamespace(pasta_site=Path(pasta), casa_padrao=114)
@@ -79,6 +104,8 @@ class TestAddon(unittest.TestCase):
             base = Path(pasta) / "addon"
             self.assertEqual((base / "arquivos.txt").read_bytes().split(b"\r\n")[:2],
                              [b"Dados.lua GoblinomicsDados", b"Goblinomics.lua SLASH_GOBLINOMICS1"])
+            self.assertIn(b"Janela.lua GoblinomicsJanela", (base / "arquivos.txt").read_bytes())
+            self.assertIn(b"GoblinomicsJanela", (base / "Janela.lua").read_bytes())
             self.assertIn(b"\r\n", (base / "atualizar.bat").read_bytes())
             self.assertEqual((base / "Icone.tga").read_bytes(), (addon.FONTES / "Icone.tga").read_bytes())
             with zipfile.ZipFile(Path(pasta) / "addon" / "Goblinomics.zip") as z:
@@ -86,6 +113,7 @@ class TestAddon(unittest.TestCase):
                 self.assertIn("Goblinomics/Goblinomics.toc", nomes)
                 self.assertIn("Goblinomics/Dados.lua", nomes)
                 self.assertIn("Goblinomics/Icone.tga", nomes)
+                self.assertIn("Goblinomics/Janela.lua", nomes)
                 bat = z.read("Goblinomics/atualizar.bat")
                 self.assertIn(b"\r\n", bat)
                 self.assertNotIn(b"\r\r", bat)
