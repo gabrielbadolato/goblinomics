@@ -13,18 +13,15 @@ import collections
 import json
 import pathlib
 import re
-import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import lualit  # noqa: E402
+import questie as q  # noqa: E402
 
-RAIZ = pathlib.Path(__file__).resolve().parent.parent
+RAIZ = q.RAIZ
 PROFISSOES = ("182", "186")
 # Um mapa entra para o material com pelo menos 3 pontos e 3% dos pontos dele: corta masmorras e sobras.
 MIN_PONTOS, MIN_FATIA = 3, 0.03
-ITEM = ["name", "npcDrops", "objectDrops"]
-OBJETO = ["name", "questStarts", "questEnds", "spawns"]
 # Raros que a tabela antiga não tinha. Death Lotus: erva incomum que vale mais que o Lótus Negro; a base não
 # diz a frequência do ponto, então fica fora da média por escolha nossa (tirar daqui se a guilda disser que é comum).
 RAROS = {248822}
@@ -33,38 +30,9 @@ NOVOS = {"MOUNT_HYJAL": ("hyjal", "Monte Hyjal", "Mount Hyjal"), "ZEPHRAS_ISLE":
          "RIVERGLADES": ("riverglades", "Riverglades", "Riverglades")}
 
 
-def _valores(v):
-    return [x for x in (v.values() if isinstance(v, dict) else v or []) if x is not None]
-
-
-def _bruto(arquivo, campos):
-    t = arquivo.read_text(encoding="utf-8")
-    d = lualit.tabela(t[t.index("[[return {") + 9: t.rindex("}]]") + 1])
-    return {i: {c: v for c, v in zip(campos, lualit.lista(l)) if v is not None} | {"_era": True} for i, l in d.items()}
-
-
-def _aplicar(base, arquivo):
-    t = arquivo.read_text(encoding="utf-8")
-    for i, campos in lualit.tabela(t[t.index("return {") + 7: t.rindex("}") + 1]).items():
-        e = base.setdefault(i, {})
-        for c, v in campos.items():
-            if c.endswith("_add"):
-                e[c[:-4]] = list(dict.fromkeys(_valores(e.get(c[:-4])) + _valores(v)))
-            elif c.endswith("_remove"):
-                e[c[:-7]] = [x for x in _valores(e.get(c[:-7])) if x not in set(_valores(v))]
-            else:
-                e[c] = v
-
-
 def main(questie, saida):
-    c = questie / "src/corrections/Forever"
-    itens = _bruto(questie / "data/Forever/foreverItemDB.lua", ITEM)
-    objetos = _bruto(questie / "data/Forever/foreverObjectDB.lua", OBJETO)
-    for base, nome in ((itens, "Item"), (objetos, "Object")):
-        _aplicar(base, c / f"generated/foreverBase{nome}.lua")
-        _aplicar(base, c / f"traces/forever{nome}Traces.lua")
-    nomes = {int(i): n for n, i in re.findall(
-        r"^\s*([A-Z][A-Z0-9_]+)\s*=\s*(\d+)\s*,", (questie / "src/corrections/enum/zones.lua").read_text(), re.M)}
+    itens, objetos = q.entidades(questie, "Item"), q.entidades(questie, "Object")
+    nomes, _ = q.zonas(questie)
 
     z = json.loads((RAIZ / "site/zonas.json").read_text())
     chave_por_ingles = {re.sub(r"[^A-Z]", "", v["en"].upper()): k for k, v in z["zonas"].items()}
@@ -85,7 +53,7 @@ def main(questie, saida):
                 continue
             item = itens.get(item_id, {})
             pontos = collections.Counter()
-            for objeto in _valores(item.get("objectDrops")):
+            for objeto in q.valores(item.get("objectDrops")):
                 for zona_id, lista in (objetos.get(objeto, {}).get("spawns") or {}).items():
                     pontos[zona_id] += len(lista) if isinstance(lista, dict) else 0
             total = sum(pontos.values())
@@ -103,8 +71,7 @@ def main(questie, saida):
                 "origem": "questie" if item.get("_era") else "forever",
                 **({"raro": True} if antigo.get("raro") or item_id in RAROS else {})}
             resumo.append(f"{item_id} {item.get('name')}: {len(por_chave)} mapas, {z['materiais'][str(item_id)]['origem']}")
-    versao = subprocess.run(["git", "-C", str(questie), "log", "-1", "--format=%h %ad", "--date=short"],
-                            capture_output=True, text=True).stdout.strip()
+    versao = q.versao(questie)
     z["_fonte"] = (f"Ervas e minérios: QuestieDB (https://github.com/Questie/QuestieDB), commit {versao}, licença GPL-3.0; "
                    "gerado por ferramentas/questie_zonas.py. Esfolamento: tabela do Classic feita à mão.")
     z["_leia"] = ("Onde cada material de coleta nasce. origem 'questie' = QuestieDB, posições do Classic convertidas para o "

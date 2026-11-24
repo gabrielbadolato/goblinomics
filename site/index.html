@@ -197,6 +197,10 @@ tr.detalhe td { white-space: normal; padding: 10px 14px 12px 42px; background: #
   background: linear-gradient(#3b3b3b, #272727); box-shadow: inset 0 0 0 1px rgba(110, 110, 110, .3); }
 .periodos button.ativo { color: #fff; background: linear-gradient(#b3931f, #6b5712); box-shadow: inset 0 0 0 1px rgba(255, 220, 90, .5); }
 .rotulo { font-size: 11px; color: var(--fraco); text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+/* A origem da receita é uma frase com nomes próprios: em maiúsculas ficava ilegível. */
+.rotulo.origem { max-width: 820px; text-transform: none; letter-spacing: 0; font-size: 12px; line-height: 1.5; color: #c9c9c9; }
+.rotulo.origem strong { color: var(--fraco); font-weight: normal; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+.rotulo.origem small { color: var(--fraco); }
 .hist svg { display: block; width: 100%; height: auto; }
 .hist svg text { fill: var(--fraco); font-size: 11px; }
 .hist .vazio, .cartao .vazio { color: var(--fraco); padding: 8px 0; }
@@ -694,6 +698,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
       <li><strong>Caminho mais barato</strong> (aba Profissões, campo "Subir até"): a cada ponto de habilidade, escolhemos a receita com o menor custo de material dividido pela chance de dar ponto. A chance é 100% enquanto a receita é laranja e cai em linha reta da amarela até a cinza. O jogo não informa em que nível a receita é aprendida: supomos uma faixa laranja do tamanho da amarela mais a verde, e por isso cada passo precisa ser conferido.</li>
       <li><strong>Guilda</strong> (aba Profissões, campo "Guilda"): duas vezes por dia lemos da Blizzard os membros da guilda, a habilidade de cada um nas profissões e as receitas que conhecem. Personagens sem guilda entram a pedido, no grupo "Outros personagens". Personagens de nível muito baixo não aparecem na consulta. Escolhendo um personagem, a lista mostra só as receitas dele e usa a habilidade dele.</li>
       <li><strong>Como aprender a receita</strong> (aba Profissões, ao abrir uma receita): a Blizzard informa, para cada item de receita, o que ele ensina a fabricar e a habilidade que exige. Mostramos esse item e o preço dele no leilão. Quando nenhum item de receita apareceu no leilão até hoje, ela costuma ser ensinada pelo instrutor ou não pode ser negociada; o link do Wowhead diz onde conseguir.</li>
+      <li><strong>Onde conseguir a receita</strong> (mesma linha): vendedores, monstros, baús e missões que dão o item da receita vêm da <a href="https://github.com/Questie/QuestieDB" target="_blank" rel="noopener">QuestieDB</a>, a base do addon Questie (licença GPL-3.0). Não conferimos esses dados no jogo. Vendedores da facção da casa aberta aparecem primeiro; com mais de 20 monstros tratamos como queda mundial e mostramos só exemplos.</li>
       <li><strong>Melhor hora</strong> (no histórico de cada item): em cada dia, comparamos o menor preço de cada hora com a média daquele dia, e tiramos a média entre os dias, suavizada em 3 horas. Precisa de 3 dias completos; por dia da semana, de 14 dias.</li>
       <li><strong>Favoritos desde a última visita</strong> (aba Resumo): o navegador guarda o preço dos seus favoritos a cada visita e compara com a visita anterior, feita pelo menos 2 horas antes. Só aparecem mudanças de 5% ou mais.</li>
     </ul>
@@ -1339,6 +1344,30 @@ const urlWowhead = id => `https://www.wowhead.com/forever/${NOMES_PT ? "pt/" : "
 const eloWowhead = (id, texto) => `<a class="wh" href="${urlWowhead(id)}" target="_blank" rel="noopener" title="${L("Abre a página do item no Wowhead", "Opens the item page on Wowhead")}">${texto} ↗</a>`;
 // Como se aprende a receita que fabrica o item: o item que a ensina (a API diz qual é) e o preço dele
 // no leilão. Sem item conhecido, ele nunca apareceu no leilão: em geral é receita de instrutor.
+// Onde se consegue o item de receita, pela QuestieDB: vendedores, monstros, baús, itens e missões.
+function origemDaReceita(rid) {
+  const o = origens?.itens?.[rid];
+  if (!o) return "";
+  const zona = z => z != null && origens.zonas[z] ? origens.zonas[z][NOMES_PT ? 1 : 0] : null;
+  const faccao = f => f === "H" ? L("Horda", "Horde") : f === "A" ? L("Aliança", "Alliance") : null;
+  const npc = (id, comNivel) => {
+    const [nome, z, f, min, max] = origens.npcs[id];
+    const extras = [comNivel && min ? `${L("nv.", "lv.")} ${min}${max && max !== min ? "–" + max : ""}` : null, zona(z), faccao(f)].filter(Boolean);
+    return esc(nome) + (extras.length ? ` <small>(${esc(extras.join(", "))})</small>` : "");
+  };
+  const partes = [];
+  // Vendedores da facção da casa aberta primeiro.
+  const minha = /hord/i.test(rotulo(casaAtual)) ? "H" : /alian|allian/i.test(rotulo(casaAtual)) ? "A" : "";
+  const peso = id => { const f = origens.npcs[id][2]; return f === minha ? 0 : f === "A" || f === "H" ? 2 : 1; };
+  if (o.v) partes.push(`<strong>${L("vendido por", "sold by")}</strong> ${[...o.v].sort((a, b) => peso(a) - peso(b)).map(id => npc(id)).join(", ")}`);
+  // Com dezenas de monstros é queda mundial: bastam o total e uns exemplos.
+  if (o.d && o.dn > 20) partes.push(`<strong>${L("queda mundial", "world drop")}</strong> ${L("de", "from")} ${o.dn} ${L("monstros, por exemplo", "monsters, for example")} ${o.d.slice(0, 3).map(id => npc(id, true)).join(", ")}`);
+  else if (o.d) partes.push(`<strong>${L("cai de", "drops from")}</strong> ${o.d.map(id => npc(id, true)).join(", ")}${o.dn > o.d.length ? ` ${L("e mais", "and")} ${o.dn - o.d.length} ${L("monstros", "more")}` : ""}`);
+  if (o.o) partes.push(`<strong>${L("em", "in")}</strong> ${o.o.map(([nome, z]) => esc(nome) + (zona(z) ? ` <small>(${esc(zona(z))})</small>` : "")).join(", ")}`);
+  if (o.i) partes.push(`<strong>${L("dentro de", "inside")}</strong> ${o.i.map(esc).join(", ")}`);
+  if (o.q) partes.push(`<strong>${L("recompensa de", "reward from")}</strong> ${o.q} ${o.q > 1 ? L("missões", "quests") : L("missão", "quest")}`);
+  return `<div class="rotulo origem" data-nt style="margin:-3px 0 6px">${L("Onde conseguir", "Where to get it")}: ${partes.join(" · ")} <small title="${L("Dados da QuestieDB, a base do addon Questie (GPL-3.0); não conferidos por nós no jogo", "Data from QuestieDB, the Questie addon database (GPL-3.0); not checked by us in game")}">· <a href="https://github.com/Questie/QuestieDB" target="_blank" rel="noopener">QuestieDB</a></small></div>`;
+}
 function comoAprender(item) {
   const itens = receitas?.ensina?.[item];
   if (!itens) return `<div class="rotulo" data-nt style="margin:0 0 6px">${L("Receita de instrutor ou não negociável: o item que a ensina nunca apareceu no leilão.", "Trainer recipe or not tradeable: the item that teaches it has never shown up on the auction house.")} ${eloWowhead(item, L("Onde conseguir", "Where to get it"))}</div>`;
@@ -1346,7 +1375,7 @@ function comoAprender(item) {
     const g = porItem.get(rid);
     const preco = g?.min != null ? `${L("no leilão por", "on the auction house for")} ${moeda(g.min)} (${g.qtd.toLocaleString(LOC)} ${L("à venda", "listed")})`
       : L("sem anúncio no leilão agora", "not listed right now");
-    return `<div class="rotulo" data-nt style="margin:0 0 6px">${L("Receita", "Recipe")}: ${eloWowhead(rid, esc(infoItem(rid).nome))} · ${preco}${nivel ? ` · ${L("exige habilidade", "requires skill")} ${nivel}` : ""}</div>`;
+    return `<div class="rotulo" data-nt style="margin:0 0 6px">${L("Receita", "Recipe")}: ${eloWowhead(rid, esc(infoItem(rid).nome))} · ${preco}${nivel ? ` · ${L("exige habilidade", "requires skill")} ${nivel}` : ""}</div>${origemDaReceita(rid)}`;
   }).join("");
 }
 
@@ -1463,7 +1492,7 @@ const corteDaCasa = () => taxa(casaAtual);
 const nomeDoMercado = casa => casa.mercado || `Mercado ${casa.grupo}`;
 const rotulo = casa => `${faccao(casa.nome)} · ${casa.id}`;
 const faccao = nome => nome.startsWith("Horde") ? "Horda" : nome.startsWith("Alliance") ? "Aliança" : "Neutra";
-let receitas, zonas = null, todasReceitas = [], linhasProf = [], profissoesPt = {};
+let receitas, zonas = null, origens = null, todasReceitas = [], linhasProf = [], profissoesPt = {};
 // As receitas chegam com os nomes das profissões em inglês; em português valem os da API em pt_BR.
 async function carregarReceitas() {
   if (!receitas) {
@@ -1471,6 +1500,8 @@ async function carregarReceitas() {
     for (const [id, nome] of Object.entries(profissoesPt)) if (dados.profissoes[id]) dados.profissoes[id] = nome;
     // Onde cada material de coleta nasce: tabela feita à mão (zonas.json), fora dos dados do leilão.
     zonas = await json("zonas.json").catch(() => null);
+    // Onde se consegue cada item de receita (vendedor, monstro, baú, missão): gerado da QuestieDB.
+    origens = await json("origens.json").catch(() => null);
     receitas = dados;
   }
   return receitas;
