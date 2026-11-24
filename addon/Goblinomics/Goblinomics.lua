@@ -5,7 +5,7 @@
 -- G: a tabela do addon, que o jogo entrega a todos os arquivos dele; é por ela que a Janela.lua usa o que está aqui.
 local _, G = ...
 G = G or {}
-local VERSAO = "1.3.1"
+local VERSAO = "1.4"
 local D = GoblinomicsDados
 local OURO, CINZA, VERDE, VERMELHO, BRANCO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050", "|cffffffff"
 local ICONE = "Interface\\AddOns\\Goblinomics\\Icone"
@@ -487,7 +487,12 @@ end
 -- O que a Janela.lua usa daqui.
 G.VERSAO, G.D, G.ICONE = VERSAO, D, ICONE
 G.dizer, G.moeda, G.numero, G.resumo, G.recarregar, G.alternarPainel = dizer, moeda, numero, resumo, recarregar, alternarPainel
-G.precoDoScan, G.QUEM_CHAMA = precoDoScan, QUEM_CHAMA
+G.precoDoScan, G.QUEM_CHAMA, G.diagnostico = precoDoScan, QUEM_CHAMA, diagnostico
+G.alternarAviso = function()
+  GoblinomicsOpcoes.aviso = not GoblinomicsOpcoes.aviso
+  dispensado = false
+  conferir()
+end
 
 -- ---- Entrada no jogo ----
 
@@ -533,7 +538,7 @@ SlashCmdList["GOBLINOMICS"] = function(texto)
   elseif texto == "diag" then
     for linha in string.gmatch(diagnostico(), "[^\n]+") do dizer(linha) end
   elseif texto == "opcoes" or texto == "opções" then
-    alternarPainel()
+    if G.alternarJanela then G.alternarJanela("opcoes") else alternarPainel() end
   else
     dizer("versão " .. VERSAO .. ". " .. resumo() .. ".")
     if G.alternarJanela then G.alternarJanela() else alternarPainel() end
