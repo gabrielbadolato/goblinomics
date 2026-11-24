@@ -1936,12 +1936,12 @@ function desenharMapas() {
   $("c-prof").innerHTML = `<small>${L("Profissão", "Profession")}</small>` + profs.map(p =>
     `<button type="button" data-v="${p}" class="${p === atual ? "ativo" : ""}" aria-pressed="${p === atual}">${NOMES_COLETA[p] || p}</button>`).join("");
   const porZona = new Map(), semMapa = [];
-  let doClassic = false;
+  const origens = new Set();
   for (const id of ids) {
     const info = zonas.materiais[id], g = porItem.get(id);
     if (!info) { semMapa.push(esc(infoItem(id).nome)); continue; }
     if (!g || g.venda == null) continue;
-    doClassic ||= info.origem !== "guilda";
+    origens.add(info.origem);
     const m = {g, lucro: Math.round(g.venda * (1 - corteDaCasa())), raro: !!info.raro, confirmado: info.origem === "guilda"};
     for (const z of info.zonas) porZona.set(z, [...(porZona.get(z) || []), m]);
   }
@@ -1955,7 +1955,7 @@ function desenharMapas() {
   const melhor = !topo.length ? "" : `<p class="nota"><strong>${L("Melhor valor médio agora", "Best average value now")}:</strong> ${esc(topo.slice(0, 4).join(", "))}${topo.length > 4 ? L(` e mais ${topo.length - 4} empatados`, ` and ${topo.length - 4} more tied`) : ""}${topo.length > 1 ? L(" (empatados: rendem o mesmo material)", " (tied: same material)") : ""}.</p>`;
   const corpo = linhas.map((l, n) => {
     const zona = zonas.zonas[l.z];
-    return `<tr><td class="nome"><span><span class="ordem">${n + 1}.</span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}</span></span></td>
+    return `<tr><td class="nome"><span><span class="ordem">${n + 1}.</span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${zona.nivel ? `${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}` : L("mapa novo do Forever", "new Forever zone")}</span></span></td>
       <td class="num pos">${moedaOuTraco(l.media)}</td><td class="num sd">${moedaOuTraco(l.mercado || null)}</td>
       <td class="mats">${l.mats.map(m => `<span class="mat"><span class="q-${m.g.qualidade}">${esc(m.g.nome)}</span> ${moeda(m.lucro)}${m.raro ? couro ? " *" : ` <small>(${L("raro", "rare")})</small>` : ""}${m.confirmado ? " ✓" : ""}</span>`).join("")}</td></tr>`;
   }).join("");
@@ -1963,7 +1963,7 @@ function desenharMapas() {
     ${melhor}
     <p class="nota">${couro ? L("<strong>No Esfolamento o couro depende do nível do monstro, não do mapa</strong>: os couros comuns foram distribuídos pela faixa de nível de cada mapa, e os de monstro específico (escamas, couro de devassauro e afins) pelos mapas onde esses monstros vivem. Os marcados com * ficam fora da média. ", "<strong>In Skinning the leather depends on the monster's level, not the zone</strong>: common leathers were spread by each zone's level range, and those from specific monsters (scales, devilsaur leather and the like) by the zones where those monsters live. Items marked * are left out of the average. ") : ""}${L("Para cada mapa, o que nasce lá e quanto vale agora, já sem a taxa do leilão. O valor médio trata os materiais comuns por igual e deixa os raros de fora: o site não sabe quantos pontos de coleta cada mapa tem, então isto indica onde está o material mais valioso, não o ouro por hora. Para a rota dentro do mapa, use os addons GatherMate2 e Routes no jogo.",
       "For each zone, what grows there and what it is worth now, after the auction house cut. The average treats common materials equally and leaves rare ones out: the site does not know how many nodes each zone has, so this shows where the most valuable material is, not gold per hour. For the route inside a zone, use the GatherMate2 and Routes addons in game.")}
-      ${doClassic ? L("<strong>As zonas vêm do WoW Classic e ainda não foram conferidas no Forever</strong>; ✓ marca o que a guilda já confirmou.", "<strong>Zones come from WoW Classic and have not been checked in Forever yet</strong>; ✓ marks what the guild has confirmed.") : ""}</p>
+      ${origens.has("questie") || origens.has("forever") ? L('<strong>Os mapas vêm da <a href="https://github.com/Questie/QuestieDB" target="_blank" rel="noopener">QuestieDB</a>, a base do addon Questie</strong> (licença GPL-3.0): posições do Classic convertidas para o Forever e, nos materiais novos, registros de jogadores do Forever. Cada material aparece nos mapas onde a base tem pelo menos 3% dos pontos de coleta dele. ✓ marca o que a guilda já confirmou.', '<strong>Zones come from <a href="https://github.com/Questie/QuestieDB" target="_blank" rel="noopener">QuestieDB</a>, the Questie addon database</strong> (GPL-3.0 license): Classic positions converted to Forever and, for new materials, records from Forever players. Each material is listed in zones where the database has at least 3% of its nodes. ✓ marks what the guild has confirmed.') : ""}${origens.has("classic") ? L("<strong>As zonas vêm do WoW Classic e ainda não foram conferidas no Forever</strong>; ✓ marca o que a guilda já confirmou.", "<strong>Zones come from WoW Classic and have not been checked in Forever yet</strong>; ✓ marks what the guild has confirmed.") : ""}</p>
     <div class="rolagem"><table>
       <thead><tr><th>${L("Mapa", "Zone")}</th><th class="num" title="${L("Média do valor por unidade dos materiais comuns do mapa que têm venda observada", "Average value per unit of the zone's common materials that have observed sales")}">${L("Valor médio (un.)", "Average value (each)")}</th>
         <th class="num sd" title="${L("Valor por unidade vezes as vendas por dia, somando os materiais do mapa", "Value per unit times sales per day, over the zone's materials")}">${L("Mercado/dia", "Market/day")}</th>
