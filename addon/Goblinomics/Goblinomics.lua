@@ -1,12 +1,15 @@
--- Goblinomics: mostra na dica do item os preços que o site calcula.
+-- Goblinomics: mostra na dica do item os números que o site calcula e põe um botão no minimapa.
 -- O jogo não acessa a internet: os dados vêm do Dados.lua desta pasta, que o atualizar.bat baixa do
 -- site. O jogo só relê esse arquivo ao entrar com o personagem ou com /reload.
 
-local VERSAO = "1.1"
+local VERSAO = "1.2"
 local D = GoblinomicsDados
-local OURO, CINZA, VERDE, VERMELHO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050"
+local OURO, CINZA, VERDE, VERMELHO, BRANCO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050", "|cffffffff"
+local ICONE = "Interface\\AddOns\\Goblinomics\\Icone"
 -- A coleta é de hora em hora; passado isto, quase sempre já existe arquivo mais novo no disco.
 local AVISAR_APOS = 75 * 60
+-- Abaixo disto em relação à média de 7 dias, e vendendo pelo menos uma por dia, é pechincha.
+local PECHINCHA = 0.7
 
 local function dizer(texto)
   DEFAULT_CHAT_FRAME:AddMessage(OURO .. "Goblinomics:|r " .. texto)
@@ -46,18 +49,34 @@ local function textoIdade()
   return "há " .. math.floor(h / 24) .. " dias"
 end
 
+local function resumo()
+  if not D then return "sem dados: rode o atualizar.bat e recarregue" end
+  return string.format("%d itens de %s, coletados %s", D.n or 0, D.casa or "?", textoIdade())
+end
+
 -- ---- Dica do item ----
+
+local function par(dica, rotulo, valor)
+  dica:AddDoubleLine(rotulo, valor, 1, 1, 1, 1, 1, 1)
+end
+
+-- Frase longa: uma linha só, com quebra automática.
+local function frase(dica, rotulo, texto)
+  dica:AddLine(BRANCO .. rotulo .. ":|r " .. texto, 0.78, 0.78, 0.78, true)
+end
 
 local function acrescentar(dica, id)
   if not D or not id then return end
   local i = D.itens[id]
   if not i then return end
+  local op = GoblinomicsOpcoes or {}
+  if op.dica == false then return end
   dica:AddLine(" ")
   dica:AddDoubleLine(OURO .. "Goblinomics|r", CINZA .. textoIdade() .. "|r")
   if i.m then
-    dica:AddDoubleLine("Menor preço", moeda(i.m), 1, 1, 1, 1, 1, 1)
-  else
-    dica:AddDoubleLine("Menor preço", CINZA .. "nada à venda|r", 1, 1, 1, 1, 1, 1)
+    par(dica, "Menor preço", moeda(i.m))
+  elseif i.h then
+    par(dica, "Menor preço", CINZA .. "nada à venda|r")
   end
   if i.h then
     local variacao = ""
@@ -66,14 +85,32 @@ local function acrescentar(dica, id)
       -- Abaixo da média é bom para quem compra: verde.
       variacao = (pct <= 0 and VERDE or VERMELHO) .. string.format(" (%+d%%)", pct) .. "|r"
     end
-    dica:AddDoubleLine("Média de 7 dias", moeda(i.h) .. variacao, 1, 1, 1, 1, 1, 1)
+    par(dica, "Média de 7 dias", moeda(i.h) .. variacao)
   end
-  if i.d then dica:AddDoubleLine("Vendas por dia", string.format("~%.1f", i.d), 1, 1, 1, 1, 1, 1) end
-  if i.q then dica:AddDoubleLine("À venda agora", tostring(i.q), 1, 1, 1, 1, 1, 1) end
-  if i.c then dica:AddDoubleLine("Custo de fabricar", moeda(i.c), 1, 1, 1, 1, 1, 1) end
-  if i.l then
-    dica:AddDoubleLine("Lucro de fabricar", (i.l >= 0 and VERDE or VERMELHO) .. moeda(i.l) .. "|r", 1, 1, 1, 1, 1, 1)
+  if i.d then par(dica, "Vendas por dia", string.format("~%.1f", i.d)) end
+  if i.q then par(dica, "À venda agora", tostring(i.q)) end
+  if i.m and i.h and i.d and i.d >= 1 and i.m <= i.h * PECHINCHA then
+    dica:AddLine(VERDE .. "Pechincha: bem abaixo da média e com saída|r")
   end
+  if i.n then
+    dica:AddLine(VERMELHO .. "Vale mais vender ao NPC (" .. moeda(i.n) .. "|r" .. VERMELHO .. ") que no leilão|r")
+  end
+  if i.c then par(dica, "Custo de fabricar", moeda(i.c)) end
+  if i.l then par(dica, "Lucro de fabricar", (i.l >= 0 and VERDE or VERMELHO) .. moeda(i.l) .. "|r") end
+  if i.g then frase(dica, "Quem faz na guilda", i.g) end
+  -- Item fabricável: a receita que o ensina, o preço dela e onde consegui-la.
+  local receita = i.r and D.itens[i.r]
+  if receita then
+    if receita.m then par(dica, "Receita no leilão", moeda(receita.m)) end
+    if receita.o then frase(dica, "Receita", receita.o) end
+  end
+  -- O próprio item é uma receita.
+  if i.o then frase(dica, "Onde conseguir", i.o) end
+  if i.u then
+    local lucrativas = i.ul and (", " .. VERDE .. i.ul .. " com lucro agora|r") or ""
+    frase(dica, "Usado em", i.u .. (i.u == 1 and " receita" or " receitas") .. lucrativas)
+  end
+  if i.z then frase(dica, "Onde coletar", i.z) end
   dica:Show()
 end
 
@@ -112,77 +149,295 @@ else
   ligar(ItemRefTooltip)
 end
 
--- ---- Aviso de dados velhos, com botão para recarregar ----
-
-local botao
-local dispensado = false
-local emTeste = false
+-- ---- Recarregar ----
 
 local function recarregar()
   if InCombatLockdown and InCombatLockdown() then
-    dizer("em combate; recarregue depois com /reload.")
+    dizer("em combate; recarregue depois.")
     return
   end
   ReloadUI()
 end
 
+-- ---- Aviso de dados velhos, com botão para recarregar ----
+
+local aviso
+local dispensado = false
+local emTeste = false
+
 local function conferir()
-  if not botao then return end
+  if not aviso then return end
   local s = idade()
   local mostrar = s and s > AVISAR_APOS and not dispensado and GoblinomicsOpcoes.aviso
   if mostrar or emTeste then
-    botao:SetText("Goblinomics: preços de " .. textoIdade() .. " - atualizar")
-    botao:SetWidth(botao:GetTextWidth() + 30)
-    botao:Show()
+    aviso:SetText("Goblinomics: preços de " .. textoIdade() .. " - atualizar")
+    aviso:SetWidth(aviso:GetTextWidth() + 30)
+    aviso:Show()
   else
-    botao:Hide()
+    aviso:Hide()
   end
 end
 
-local function criarBotao()
-  botao = CreateFrame("Button", "GoblinomicsAviso", UIParent, "UIPanelButtonTemplate")
-  botao:SetHeight(22)
-  botao:SetPoint("TOP", UIParent, "TOP", 0, -28)
-  botao:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-  botao:SetScript("OnClick", function(_, tecla)
+local function criarAviso()
+  aviso = CreateFrame("Button", "GoblinomicsAviso", UIParent, "UIPanelButtonTemplate")
+  aviso:SetHeight(22)
+  aviso:SetPoint("TOP", UIParent, "TOP", 0, -28)
+  aviso:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  aviso:SetScript("OnClick", function(_, tecla)
     if emTeste then
       -- No teste o clique só esconde: recarregar aqui pegaria a pessoa de surpresa.
       emTeste = false
       conferir()
     elseif tecla == "RightButton" then
       dispensado = true
-      botao:Hide()
+      aviso:Hide()
     else
       recarregar()
     end
   end)
-  botao:SetScript("OnEnter", function(self)
+  aviso:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
     GameTooltip:AddLine("Goblinomics")
     GameTooltip:AddLine("Clique: recarrega a interface para ler os preços novos.", 1, 1, 1, true)
     GameTooltip:AddLine("Clique direito: esconde até o próximo carregamento.", 1, 1, 1, true)
-    GameTooltip:AddLine("/gob aviso liga ou desliga este botão.", 0.6, 0.6, 0.6, true)
     GameTooltip:Show()
   end)
-  botao:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  botao:Hide()
+  aviso:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  aviso:Hide()
 end
+
+-- ---- Diagnóstico: o que este cliente do jogo oferece, para as próximas funções do addon ----
+
+local function existe(caminho)
+  local atual = _G
+  for parte in string.gmatch(caminho, "[^.]+") do
+    if type(atual) ~= "table" then return false end
+    atual = atual[parte]
+    if atual == nil then return false end
+  end
+  return true
+end
+
+local SONDAS = {
+  {"Dica", {"TooltipDataProcessor", "C_TooltipInfo", "GameTooltip.GetItem", "GetItemInfo", "C_Item.GetItemInfo"}},
+  {"Profissão", {"TradeSkillFrame", "ProfessionsFrame", "CraftFrame", "GetNumTradeSkills", "GetTradeSkillInfo",
+    "GetTradeSkillItemLink", "C_TradeSkillUI", "C_TradeSkillUI.GetRecipeInfo", "TradeSkillFrame_Update"}},
+  {"Bolsas", {"C_Container", "C_Container.GetContainerItemLink", "GetContainerItemLink", "ContainerFrame1", "Baganator", "BagnonFrameinventory"}},
+  {"Vendedor", {"MerchantFrame", "GetMerchantItemLink", "GetMerchantItemInfo", "C_MerchantFrame"}},
+  {"Leilão", {"AuctionFrame", "AuctionHouseFrame", "C_AuctionHouse", "GetAuctionItemInfo"}},
+  {"Mapa", {"GetRealZoneText", "GetZoneText", "C_Map.GetBestMapForUnit", "C_Map.GetMapInfo"}},
+  {"Interface", {"BackdropTemplateMixin", "C_Timer.NewTicker", "LibStub", "UIDropDownMenu_Initialize", "MenuUtil",
+    "C_AddOns.IsAddOnLoaded", "IsAddOnLoaded", "Settings", "InterfaceOptions_AddCategory", "ScrollUtil", "FauxScrollFrame_Update"}},
+  {"Moeda", {"GetCoinTextureString", "C_CurrencyInfo.GetCoinTextureString", "GetMoneyString"}},
+  {"Auctionator", {"Auctionator", "Auctionator.API", "Auctionator.API.v1", "AUCTIONATOR_PRICE_DATABASE", "Atr_GetAuctionBuyout"}},
+}
+
+local function diagnostico()
+  local linhas = {}
+  local versao, compilacao, _, interface = GetBuildInfo()
+  linhas[#linhas + 1] = string.format("Goblinomics %s · jogo %s (%s) · interface %s", VERSAO, tostring(versao), tostring(compilacao), tostring(interface))
+  for _, grupo in ipairs(SONDAS) do
+    local sim, nao = {}, {}
+    for _, nome in ipairs(grupo[2]) do
+      if existe(nome) then sim[#sim + 1] = nome else nao[#nao + 1] = nome end
+    end
+    linhas[#linhas + 1] = OURO .. grupo[1] .. "|r  " .. VERDE .. "tem:|r " .. (#sim > 0 and table.concat(sim, ", ") or "-")
+      .. "  " .. VERMELHO .. "não tem:|r " .. (#nao > 0 and table.concat(nao, ", ") or "-")
+  end
+  -- As funções que o Auctionator oferece a outros addons, pelo nome.
+  if existe("Auctionator.API.v1") then
+    local nomes = {}
+    for nome, valor in pairs(Auctionator.API.v1) do
+      if type(valor) == "function" then nomes[#nomes + 1] = nome end
+    end
+    table.sort(nomes)
+    linhas[#linhas + 1] = OURO .. "Auctionator.API.v1|r  " .. table.concat(nomes, ", ")
+  end
+  local libs = {}
+  if LibStub and LibStub.GetLibrary then
+    for _, nome in ipairs({"LibDBIcon-1.0", "LibDataBroker-1.1", "AceGUI-3.0"}) do
+      if LibStub:GetLibrary(nome, true) then libs[#libs + 1] = nome end
+    end
+  end
+  linhas[#linhas + 1] = OURO .. "Bibliotecas|r  " .. (#libs > 0 and table.concat(libs, ", ") or "-")
+  return table.concat(linhas, "\n")
+end
+
+-- ---- Painel: abre pelo botão do minimapa ----
+
+local painel, textoDiag
+
+local function botao(pai, rotulo, largura, aoClicar)
+  local b = CreateFrame("Button", nil, pai, "UIPanelButtonTemplate")
+  b:SetSize(largura, 24)
+  b:SetText(rotulo)
+  b:SetScript("OnClick", aoClicar)
+  return b
+end
+
+local function atualizarPainel()
+  if not painel then return end
+  painel.estado:SetText(resumo())
+  painel.dica:SetText("Dados na dica do item: " .. (GoblinomicsOpcoes.dica == false and "desligados" or "ligados"))
+  painel.aviso:SetText("Botão de preços velhos: " .. (GoblinomicsOpcoes.aviso and "ligado" or "desligado"))
+end
+
+local function criarPainel()
+  painel = CreateFrame("Frame", "GoblinomicsPainel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  painel:SetSize(560, 150)
+  painel:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+  painel:SetFrameStrata("DIALOG")
+  if painel.SetBackdrop then
+    painel:SetBackdrop({bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+      edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", tile = true, tileSize = 32, edgeSize = 24,
+      insets = {left = 6, right = 6, top = 6, bottom = 6}})
+  else
+    local fundo = painel:CreateTexture(nil, "BACKGROUND")
+    fundo:SetAllPoints(painel)
+    fundo:SetColorTexture(0, 0, 0, 0.85)
+  end
+  painel:EnableMouse(true)
+  painel:SetMovable(true)
+  painel:RegisterForDrag("LeftButton")
+  painel:SetScript("OnDragStart", painel.StartMoving)
+  painel:SetScript("OnDragStop", painel.StopMovingOrSizing)
+  painel:SetClampedToScreen(true)
+  -- Esc fecha, como as janelas do jogo.
+  if UISpecialFrames then table.insert(UISpecialFrames, "GoblinomicsPainel") end
+
+  local icone = painel:CreateTexture(nil, "ARTWORK")
+  icone:SetSize(28, 28)
+  icone:SetPoint("TOPLEFT", 16, -14)
+  icone:SetTexture(ICONE)
+  local titulo = painel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  titulo:SetPoint("LEFT", icone, "RIGHT", 8, 0)
+  titulo:SetText("Goblinomics " .. VERSAO)
+  painel.estado = painel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  painel.estado:SetPoint("TOPLEFT", 16, -48)
+
+  botao(painel, "Fechar", 70, function() painel:Hide() end):SetPoint("TOPRIGHT", -14, -14)
+  local recarrega = botao(painel, "Atualizar preços (recarrega a interface)", 270, recarregar)
+  recarrega:SetPoint("TOPLEFT", 16, -68)
+  painel.dica = botao(painel, "", 250, function()
+    GoblinomicsOpcoes.dica = GoblinomicsOpcoes.dica == false
+    atualizarPainel()
+  end)
+  painel.dica:SetPoint("TOPLEFT", 16, -98)
+  painel.aviso = botao(painel, "", 250, function()
+    GoblinomicsOpcoes.aviso = not GoblinomicsOpcoes.aviso
+    dispensado = false
+    conferir()
+    atualizarPainel()
+  end)
+  painel.aviso:SetPoint("LEFT", painel.dica, "RIGHT", 8, 0)
+  local diag = botao(painel, "Diagnóstico", 110, function()
+    -- O texto aparece aqui mesmo, para caber numa captura de tela.
+    if textoDiag:IsShown() then
+      textoDiag:Hide()
+      painel:SetHeight(150)
+    else
+      textoDiag:SetText(diagnostico())
+      textoDiag:Show()
+      painel:SetHeight(170 + textoDiag:GetStringHeight())
+    end
+  end)
+  diag:SetPoint("LEFT", recarrega, "RIGHT", 8, 0)
+
+  textoDiag = painel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  textoDiag:SetPoint("TOPLEFT", 16, -132)
+  textoDiag:SetWidth(528)
+  textoDiag:SetJustifyH("LEFT")
+  if textoDiag.SetWordWrap then textoDiag:SetWordWrap(true) end
+  textoDiag:Hide()
+  painel:Hide()
+end
+
+local function alternarPainel()
+  if not painel then criarPainel() end
+  if painel:IsShown() then
+    painel:Hide()
+  else
+    atualizarPainel()
+    painel:Show()
+  end
+end
+
+-- ---- Botão no minimapa: arrasta em volta dele, a posição fica guardada ----
+
+local function posicionar(b)
+  local angulo = math.rad(GoblinomicsOpcoes.angulo or 215)
+  local raio = (Minimap:GetWidth() / 2) + 5
+  b:ClearAllPoints()
+  b:SetPoint("CENTER", Minimap, "CENTER", math.cos(angulo) * raio, math.sin(angulo) * raio)
+end
+
+local function criarBotaoDoMinimapa()
+  if not Minimap then return end
+  local b = CreateFrame("Button", "GoblinomicsMinimapa", Minimap)
+  b:SetSize(31, 31)
+  b:SetFrameStrata("MEDIUM")
+  b:SetFrameLevel(8)
+  b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  b:RegisterForDrag("LeftButton")
+  b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+  local icone = b:CreateTexture(nil, "BACKGROUND")
+  icone:SetSize(21, 21)
+  icone:SetPoint("CENTER", 0, 0)
+  icone:SetTexture(ICONE)
+  local borda = b:CreateTexture(nil, "OVERLAY")
+  borda:SetSize(53, 53)
+  borda:SetPoint("TOPLEFT", 0, 0)
+  borda:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+
+  b:SetScript("OnClick", function(_, tecla)
+    if tecla == "RightButton" then recarregar() else alternarPainel() end
+  end)
+  b:SetScript("OnDragStart", function(self)
+    self:SetScript("OnUpdate", function(eu)
+      local cx, cy = Minimap:GetCenter()
+      local x, y = GetCursorPosition()
+      local escala = Minimap:GetEffectiveScale()
+      GoblinomicsOpcoes.angulo = math.deg(math.atan2(y / escala - cy, x / escala - cx))
+      posicionar(eu)
+    end)
+  end)
+  b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
+  b:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+    GameTooltip:AddLine("Goblinomics " .. VERSAO)
+    GameTooltip:AddLine(resumo(), 1, 1, 1, true)
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("Clique: abre o painel.", 0.78, 0.78, 0.78)
+    GameTooltip:AddLine("Clique direito: recarrega para ler os preços novos.", 0.78, 0.78, 0.78)
+    GameTooltip:AddLine("Arraste: muda o botão de lugar.", 0.78, 0.78, 0.78)
+    GameTooltip:Show()
+  end)
+  b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  posicionar(b)
+end
+
+-- ---- Entrada no jogo ----
 
 local quadro = CreateFrame("Frame")
 quadro:RegisterEvent("PLAYER_LOGIN")
 quadro:SetScript("OnEvent", function()
   if type(GoblinomicsOpcoes) ~= "table" then GoblinomicsOpcoes = {} end
   if GoblinomicsOpcoes.aviso == nil then GoblinomicsOpcoes.aviso = true end
+  -- Cada peça por si: um erro numa não impede as outras de aparecer.
+  local ok, erro = pcall(criarBotaoDoMinimapa)
+  if not ok then dizer("o botão do minimapa falhou: " .. tostring(erro)) end
   if not D then
-    dizer("sem dados. Rode o atualizar.bat da pasta do addon e depois /reload.")
+    dizer("sem dados. Rode o atualizar.bat da pasta do addon e recarregue.")
     return
   end
-  dizer(string.format("%d itens de %s, coletados %s. /gob para ajuda.", D.n or 0, D.casa or "?", textoIdade()))
-  criarBotao()
+  dizer(resumo() .. ". Clique na moeda do minimapa para abrir o painel.")
+  ok, erro = pcall(criarAviso)
+  if not ok then dizer("o botão de aviso falhou: " .. tostring(erro)) end
   conferir()
   if C_Timer and C_Timer.NewTicker then C_Timer.NewTicker(60, conferir) end
 end)
 
+-- Os comandos continuam existindo, mas tudo está no painel.
 SLASH_GOBLINOMICS1 = "/gob"
 SLASH_GOBLINOMICS2 = "/goblinomics"
 SlashCmdList["GOBLINOMICS"] = function(texto)
@@ -190,26 +445,22 @@ SlashCmdList["GOBLINOMICS"] = function(texto)
   if texto == "aviso" then
     GoblinomicsOpcoes.aviso = not GoblinomicsOpcoes.aviso
     dispensado = false
-    dizer("botão de atualizar " .. (GoblinomicsOpcoes.aviso and "ligado." or "desligado."))
+    dizer("botão de preços velhos " .. (GoblinomicsOpcoes.aviso and "ligado." or "desligado."))
     conferir()
   elseif texto == "atualizar" or texto == "reload" then
     recarregar()
   elseif texto == "teste" then
-    if not botao then
+    if not aviso then
       dizer("sem dados carregados, não há botão para mostrar.")
     else
       emTeste = true
       conferir()
       dizer("o botão está no alto da tela, no centro. Neste teste, clicar nele só o esconde.")
     end
+  elseif texto == "diag" then
+    for linha in string.gmatch(diagnostico(), "[^\n]+") do dizer(linha) end
   else
-    if D then
-      dizer(string.format("versão %s. %d itens de %s, coletados %s.", VERSAO, D.n or 0, D.casa or "?", textoIdade()))
-    else
-      dizer("sem dados. Rode o atualizar.bat e depois /reload.")
-    end
-    dizer("/gob atualizar - recarrega a interface para ler os preços novos")
-    dizer("/gob teste - mostra o botão agora, para ver onde ele fica")
-    dizer("/gob aviso - liga ou desliga o botão que aparece quando os preços passam de 1h15")
+    dizer("versão " .. VERSAO .. ". " .. resumo() .. ".")
+    alternarPainel()
   end
 end

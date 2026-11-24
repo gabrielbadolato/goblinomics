@@ -2,30 +2,38 @@ Goblinomics - addon pessoal
 ===========================
 
 Mostra na dica de cada item os numeros do site: menor preco, media de 7 dias,
-vendas por dia, quantidade a venda e, quando o item e fabricavel, custo e lucro.
+vendas por dia, quantidade a venda, custo e lucro de fabricar, quem da guilda
+faz, onde conseguir a receita, em quantas receitas o material entra e em que
+mapas se coleta. Um botao no minimapa (a moeda com o G) abre o painel.
 
 Instalar
 --------
 1. No Battle.net, clique na engrenagem ao lado de "Jogar" e em "Mostrar no Explorer".
 2. Entre na pasta do jogo e depois em Interface\AddOns.
 3. Copie a pasta "Goblinomics" inteira para la.
-4. Dentro dela, de dois cliques em atualizar.bat (baixa os precos de agora).
+4. O Windows marca arquivos vindos de um zip baixado como "vindos da web" e nao
+   deixa a tarefa agendada roda-los. Em atualizar.bat e em silencioso.vbs:
+   botao direito, Propriedades, marque "Desbloquear" no rodape da aba Geral, OK.
 5. De dois cliques em agendar.bat (o Windows passa a baixar sozinho a cada 20 minutos).
 6. Abra o jogo. Na tela de personagens, em AddOns, confira se "Goblinomics" esta marcado.
 
 No jogo
 -------
 - Passe o mouse num item: as linhas do Goblinomics aparecem no fim da dica.
-- O jogo so le precos novos ao entrar com o personagem ou com /reload.
+- Moeda no minimapa: clique abre o painel (atualizar precos, ligar e desligar
+  a dica e o botao de aviso, diagnostico); clique direito recarrega a interface;
+  arrastar muda a moeda de lugar.
+- O jogo so le precos novos ao entrar com o personagem ou ao recarregar.
   Quando os precos carregados passam de 1h15, aparece um botao no alto da tela:
   clique para recarregar; clique direito para esconder.
-- /gob            mostra a idade dos dados e a ajuda
-- /gob atualizar  recarrega a interface
-- /gob teste      mostra o botao agora, para ver onde ele fica
-- /gob aviso      liga ou desliga o botao
+- Tudo esta no painel; o comando /gob abre o mesmo painel.
 
-O atualizar.bat baixa os precos e tambem o codigo do addon (Goblinomics.lua e
-Goblinomics.toc), entao os ajustes chegam sozinhos e valem no proximo /reload.
+Atualizacoes
+------------
+O atualizar.bat baixa os precos e tambem o codigo do addon, seguindo a lista
+arquivos.txt do site (so aceita .lua, .toc e .tga). Os ajustes chegam sozinhos
+e valem ao recarregar; arquivo que ainda nao existia so aparece depois de
+fechar e abrir o jogo. Os .bat e o .vbs nao se atualizam sozinhos.
 
 Desinstalar
 -----------
