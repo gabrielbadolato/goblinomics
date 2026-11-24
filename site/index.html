@@ -264,6 +264,9 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
 .troca button { margin: 0; padding: 2px 7px; border: 0; border-left: 1px solid #000; background: none; cursor: pointer; font: inherit; color: var(--fraco); text-decoration: none; }
 .troca button:hover { color: #fff; }
 .troca button.ativo, .troca button.ativo:hover { background: linear-gradient(#ffe46b, #c79a12); color: #1a1400; font-weight: bold; cursor: default; }
+#bloco-mapas td.mats { white-space: normal; line-height: 1.7; }
+#bloco-mapas .mat { display: inline-block; margin-right: 12px; white-space: nowrap; }
+#bloco-mapas .nv { margin-left: 6px; font: 11px Arial, sans-serif; color: var(--fraco); }
 .acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; max-width: 800px; margin-top: 10px; font-size: 13px; color: var(--fraco); }
 .acoes input { width: 74px; }
 #agora td.tipo-acao { color: var(--fraco); font: 12px Arial, sans-serif; white-space: nowrap; }
@@ -505,6 +508,7 @@ html[lang=en] [data-l=pt], html:not([lang=en]) [data-l=en] { display: none; }
           <tbody id="linhas-mat"></tbody>
         </table>
       </div>
+      <div id="bloco-mapas" data-nt hidden></div>
     </div>
     <div id="bloco-rec">
     <h2 class="titulo-bloco">Receitas</h2>
@@ -1438,12 +1442,14 @@ const corteDaCasa = () => taxa(casaAtual);
 const nomeDoMercado = casa => casa.mercado || `Mercado ${casa.grupo}`;
 const rotulo = casa => `${faccao(casa.nome)} · ${casa.id}`;
 const faccao = nome => nome.startsWith("Horde") ? "Horda" : nome.startsWith("Alliance") ? "Aliança" : "Neutra";
-let receitas, todasReceitas = [], linhasProf = [], profissoesPt = {};
+let receitas, zonas = null, todasReceitas = [], linhasProf = [], profissoesPt = {};
 // As receitas chegam com os nomes das profissões em inglês; em português valem os da API em pt_BR.
 async function carregarReceitas() {
   if (!receitas) {
     const dados = await json("dados/receitas.json");
     for (const [id, nome] of Object.entries(profissoesPt)) if (dados.profissoes[id]) dados.profissoes[id] = nome;
+    // Onde cada material de coleta nasce: tabela feita à mão (zonas.json), fora dos dados do leilão.
+    zonas = await json("zonas.json").catch(() => null);
     receitas = dados;
   }
   return receitas;
@@ -1892,6 +1898,48 @@ function desenharMateriais() {
     }
   }
   $("linhas-mat").innerHTML = h;
+  desenharMapas();
+}
+
+// Ranking de mapas para a profissão de coleta aberta: o que nasce em cada zona e quanto vale agora.
+// O site não sabe quantos pontos de coleta cada mapa tem, então a média trata os materiais comuns por
+// igual e deixa os raros de fora; é um guia do que vale mais, não uma conta de ouro por hora.
+function desenharMapas() {
+  const ids = zonas?.profissoes?.[prof.id], bloco = $("bloco-mapas");
+  bloco.hidden = !ids;
+  if (!ids) return;
+  const porZona = new Map(), semMapa = [];
+  let doClassic = false;
+  for (const id of ids) {
+    const info = zonas.materiais[id], g = porItem.get(id);
+    if (!info) { semMapa.push(esc(infoItem(id).nome)); continue; }
+    if (!g || g.venda == null) continue;
+    doClassic ||= info.origem !== "guilda";
+    const m = {g, lucro: Math.round(g.venda * (1 - corteDaCasa())), raro: !!info.raro, confirmado: info.origem === "guilda"};
+    for (const z of info.zonas) porZona.set(z, [...(porZona.get(z) || []), m]);
+  }
+  const linhas = [...porZona].map(([z, mats]) => {
+    const comuns = mats.filter(m => !m.raro), comSaida = comuns.filter(m => m.g.vdia > 0), base = comSaida.length ? comSaida : comuns;
+    return {z, mats: mats.sort((a, b) => b.lucro - a.lucro),
+      media: base.length ? Math.round(base.reduce((s, m) => s + m.lucro, 0) / base.length) : null,
+      mercado: Math.round(mats.reduce((s, m) => s + m.lucro * (m.g.vdia || 0), 0))};
+  }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1));
+  const corpo = linhas.map(l => {
+    const zona = zonas.zonas[l.z];
+    return `<tr><td class="nome"><span>${esc(NOMES_PT ? zona.pt : zona.en)}<span class="nv">${L("nível", "level")} ${zona.nivel[0]}–${zona.nivel[1]}</span></span></td>
+      <td class="num pos">${moedaOuTraco(l.media)}</td><td class="num sd">${moedaOuTraco(l.mercado || null)}</td>
+      <td class="mats">${l.mats.map(m => `<span class="mat"><span class="q-${m.g.qualidade}">${esc(m.g.nome)}</span> ${moeda(m.lucro)}${m.raro ? ` <small>(${L("raro", "rare")})</small>` : ""}${m.confirmado ? " ✓" : ""}</span>`).join("")}</td></tr>`;
+  }).join("");
+  bloco.innerHTML = `<h2 class="titulo-bloco">${L("Mapas para coletar", "Zones to gather in")}</h2>
+    <p class="nota">${L("Para cada mapa, o que nasce lá e quanto vale agora, já sem a taxa do leilão. O valor médio trata os materiais comuns por igual e deixa os raros de fora: o site não sabe quantos pontos de coleta cada mapa tem, então isto indica onde está o material mais valioso, não o ouro por hora. Para a rota dentro do mapa, use os addons GatherMate2 e Routes no jogo.",
+      "For each zone, what grows there and what it is worth now, after the auction house cut. The average treats common materials equally and leaves rare ones out: the site does not know how many nodes each zone has, so this shows where the most valuable material is, not gold per hour. For the route inside a zone, use the GatherMate2 and Routes addons in game.")}
+      ${doClassic ? L("<strong>As zonas vêm do WoW Classic e ainda não foram conferidas no Forever</strong>; ✓ marca o que a guilda já confirmou.", "<strong>Zones come from WoW Classic and have not been checked in Forever yet</strong>; ✓ marks what the guild has confirmed.") : ""}</p>
+    <div class="rolagem"><table>
+      <thead><tr><th>${L("Mapa", "Zone")}</th><th class="num" title="${L("Média do valor por unidade dos materiais comuns do mapa que têm venda observada", "Average value per unit of the zone's common materials that have observed sales")}">${L("Valor médio (un.)", "Average value (each)")}</th>
+        <th class="num sd" title="${L("Valor por unidade vezes as vendas por dia, somando os materiais do mapa", "Value per unit times sales per day, over the zone's materials")}">${L("Mercado/dia", "Market/day")}</th>
+        <th>${L("Materiais e valor por unidade", "Materials and value each")}</th></tr></thead>
+      <tbody>${corpo}</tbody></table></div>
+    ${semMapa.length ? `<p class="nota">${L("Sem mapa conhecido (novos do Forever)", "No known zone (new in Forever)")}: ${semMapa.join(", ")}. ${L("Se você souber onde nascem, avise no Discord da guilda.", "If you know where they grow, tell us on the guild Discord.")}</p>` : ""}`;
 }
 
 function filtrarProf() {
