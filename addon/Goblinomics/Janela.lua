@@ -227,8 +227,9 @@ local function abaDe(chave)
 end
 
 -- ---- Desenho ----
--- Tudo numa janela só, no escuro e dourado do site, desenhada com retângulos lisos (sem depender dos
--- modelos de moldura do jogo, que mudam de um cliente para outro).
+-- Duas aparências para a mesma janela. "jogo": a moldura, os botões e as abas padrão do próprio jogo.
+-- "lisa": retângulos escuros com contorno dourado, no estilo do site; é também a reserva quando algum
+-- modelo de moldura do jogo não existe neste cliente. A escolha fica em GoblinomicsOpcoes.pele.
 
 local COR = {
   fundo = {0.04, 0.04, 0.05, 0.96}, faixa = {0.11, 0.095, 0.05, 1}, borda = {0.62, 0.50, 0.16, 1},
@@ -236,8 +237,10 @@ local COR = {
   botao = {0.20, 0.16, 0.06, 1}, botaoAceso = {0.34, 0.27, 0.09, 1}, ouro = {1, 0.82, 0},
   apagado = {0.62, 0.62, 0.62}, trilho = {1, 1, 1, 0.06}, cursor = {0.62, 0.50, 0.16, 0.9},
 }
-local LARGURA, ALTURA_DA_JANELA, MARGEM = 720, 522, 14
-local TOPO_DAS_LINHAS = -132
+local LARGURA = 720
+-- Medidas que mudam com a aparência; preenchidas ao criar a janela.
+local P = {}
+local pele = "jogo"
 
 local function retangulo(pai, camada, cor)
   local r = pai:CreateTexture(nil, camada)
@@ -263,19 +266,27 @@ local function texto(pai, fonte, cor)
   return t
 end
 
--- Botão liso: fundo escuro, contorno dourado, acende ao passar o mouse.
+-- Botão: o padrão do jogo na aparência "jogo"; liso com contorno dourado na outra.
 local function botao(pai, rotulo, largura, aoClicar)
-  local b = CreateFrame("Button", nil, pai)
-  b:SetSize(largura, 24)
-  b.fundo = retangulo(b, "BACKGROUND", COR.botao)
-  b.fundo:SetAllPoints(b)
-  contornar(b, COR.borda)
-  b.rotulo = texto(b, "GameFontNormalSmall", COR.ouro)
-  b.rotulo:SetPoint("CENTER")
-  b.rotulo:SetText(rotulo)
-  b.SetRotulo = function(self, novo) self.rotulo:SetText(novo) end
-  b:SetScript("OnEnter", function(self) self.fundo:SetColorTexture(unpack(COR.botaoAceso)) end)
-  b:SetScript("OnLeave", function(self) self.fundo:SetColorTexture(unpack(COR.botao)) end)
+  local b
+  if pele == "jogo" then
+    b = CreateFrame("Button", nil, pai, "UIPanelButtonTemplate")
+    b:SetSize(largura, 22)
+    b:SetText(rotulo)
+    b.SetRotulo = function(self, novo) self:SetText(novo) end
+  else
+    b = CreateFrame("Button", nil, pai)
+    b:SetSize(largura, 24)
+    b.fundo = retangulo(b, "BACKGROUND", COR.botao)
+    b.fundo:SetAllPoints(b)
+    contornar(b, COR.borda)
+    b.rotulo = texto(b, "GameFontNormalSmall", COR.ouro)
+    b.rotulo:SetPoint("CENTER")
+    b.rotulo:SetText(rotulo)
+    b.SetRotulo = function(self, novo) self.rotulo:SetText(novo) end
+    b:SetScript("OnEnter", function(self) self.fundo:SetColorTexture(unpack(COR.botaoAceso)) end)
+    b:SetScript("OnLeave", function(self) self.fundo:SetColorTexture(unpack(COR.botao)) end)
+  end
   b:SetScript("OnClick", aoClicar)
   return b
 end
@@ -285,16 +296,13 @@ local function desenharOpcoes()
   o.dica:SetRotulo(op.dica == false and "Desligados" or "Ligados")
   o.aviso:SetRotulo(op.aviso and "Ligado" or "Desligado")
   o.vendedor:SetRotulo(op.vendedor == false and "Desligado" or "Ligado")
+  o.pele:SetRotulo(op.pele == "lisa" and "Lisa" or "Do jogo")
 end
 
 local function desenhar()
   if not janela then return end
   local aba = abaDe(abaAtual)
-  for _, b in ipairs(janela.abas) do
-    local ativa = b.chave == abaAtual
-    b.rotulo:SetTextColor(unpack(ativa and COR.ouro or COR.apagado))
-    if ativa then b.sublinhado:Show(); b.fundo:Show() else b.sublinhado:Hide(); b.fundo:Hide() end
-  end
+  janela.marcarAbas()
   for k = 1, 3 do janela.colunas[k]:SetText(aba.colunas and aba.colunas[k] or "") end
   if aba.painel then
     for k = 1, LINHAS do janela.linhas[k]:Hide() end
@@ -323,8 +331,12 @@ local function desenhar()
       linha.esq:SetText(dados.titulo and (OURO .. dados.titulo .. "|r") or (dados.esq or ""))
       linha.meio:SetText(dados.meio or "")
       linha.dir:SetText(dados.dir or "")
-      if dados.titulo then linha.zebra:Hide(); linha.regua:Show()
-      else linha.regua:Hide(); if (k + deslocamento) % 2 == 0 then linha.zebra:Show() else linha.zebra:Hide() end end
+      if dados.titulo then
+        linha.zebra:Hide(); linha.regua:Show()
+      else
+        linha.regua:Hide()
+        if (k + deslocamento) % 2 == 0 then linha.zebra:Show() else linha.zebra:Hide() end
+      end
       if dados == selecionada then linha.fundo:Show() else linha.fundo:Hide() end
       linha:Show()
     else
@@ -337,7 +349,7 @@ local function desenhar()
     local tamanho = math.max(24, trilho * LINHAS / #linhasDaAba)
     janela.cursor:SetHeight(tamanho)
     janela.cursor:ClearAllPoints()
-    janela.cursor:SetPoint("TOPRIGHT", janela, "TOPRIGHT", -MARGEM + 6, TOPO_DAS_LINHAS - (trilho - tamanho) * deslocamento / maximo)
+    janela.cursor:SetPoint("TOPRIGHT", janela, "TOPRIGHT", -P.margem + 6, P.topo - (trilho - tamanho) * deslocamento / maximo)
     janela.trilho:Show(); janela.cursor:Show()
     janela.pagina:SetText(string.format("%d-%d de %d", deslocamento + 1, math.min(deslocamento + LINHAS, #linhasDaAba), #linhasDaAba))
   else
@@ -349,7 +361,7 @@ local function desenhar()
     janela.alternar:SetRotulo(aba.alternar.rotulo())
     -- Sem o botão de ação ao lado, o de alternar ocupa o canto.
     janela.alternar:ClearAllPoints()
-    if aba.acao then janela.alternar:SetPoint("LEFT", janela.acao, "RIGHT", 8, 0) else janela.alternar:SetPoint("BOTTOMLEFT", MARGEM, 11) end
+    if aba.acao then janela.alternar:SetPoint("LEFT", janela.acao, "RIGHT", 8, 0) else janela.alternar:SetPoint("BOTTOMLEFT", P.margem, P.rodape) end
     janela.alternar:Show()
   else
     janela.alternar:Hide()
@@ -376,8 +388,8 @@ end
 
 local function criarLinha(k)
   local linha = CreateFrame("Button", nil, janela)
-  linha:SetSize(LARGURA - 2 * MARGEM - 10, ALTURA)
-  linha:SetPoint("TOPLEFT", MARGEM, TOPO_DAS_LINHAS - (k - 1) * ALTURA)
+  linha:SetSize(LARGURA - 2 * P.margem - 10, ALTURA)
+  linha:SetPoint("TOPLEFT", P.margem, P.topo - (k - 1) * ALTURA)
   linha.zebra = retangulo(linha, "BACKGROUND", COR.linha)
   linha.zebra:SetAllPoints(linha)
   linha.fundo = retangulo(linha, "BORDER", COR.escolhida)
@@ -405,7 +417,7 @@ local function criarLinha(k)
   linha.meio:SetJustifyH("RIGHT")
   linha.dir = texto(linha, "GameFontHighlightSmall")
   linha.dir:SetPoint("LEFT", 474, 0)
-  linha.dir:SetWidth(204)
+  linha.dir:SetWidth(200)
   for _, t in ipairs({linha.esq, linha.meio, linha.dir}) do
     if t.SetWordWrap then t:SetWordWrap(false) end
   end
@@ -435,11 +447,11 @@ end
 -- A aba Opções: o que antes era um painel à parte.
 local function criarOpcoes()
   local o = CreateFrame("Frame", nil, janela)
-  o:SetPoint("TOPLEFT", MARGEM, TOPO_DAS_LINHAS + 16)
-  o:SetSize(LARGURA - 2 * MARGEM, LINHAS * ALTURA + 16)
-  local function opcao(k, titulo, explicacao, aoClicar)
-    local b = botao(o, "", 110, function() aoClicar(); desenharOpcoes() end)
-    b:SetPoint("TOPLEFT", 0, -(k - 1) * 38)
+  o:SetPoint("TOPLEFT", P.margem + 4, P.topo + 12)
+  o:SetSize(LARGURA - 2 * P.margem - 8, LINHAS * ALTURA + 12)
+  local function opcao(k, rotuloDoBotao, titulo, explicacao, aoClicar)
+    local b = botao(o, rotuloDoBotao, 110, function() aoClicar(); desenharOpcoes() end)
+    b:SetPoint("TOPLEFT", 0, -(k - 1) * 36)
     local t = texto(o, "GameFontHighlight")
     t:SetPoint("LEFT", b, "RIGHT", 12, 6)
     t:SetText(titulo)
@@ -448,50 +460,172 @@ local function criarOpcoes()
     e:SetText(explicacao)
     return b
   end
-  o.dica = opcao(1, "Dados na dica do item", "As linhas do Goblinomics ao passar o mouse num item.",
+  o.dica = opcao(1, "", "Dados na dica do item", "As linhas do Goblinomics ao passar o mouse num item.",
     function() GoblinomicsOpcoes.dica = GoblinomicsOpcoes.dica == false end)
-  o.aviso = opcao(2, "Aviso de preços velhos", "O botão no alto da tela quando os preços carregados passam de 1h15.",
+  o.aviso = opcao(2, "", "Aviso de preços velhos", "O botão no alto da tela quando os preços carregados passam de 1h15.",
     function() if G.alternarAviso then G.alternarAviso() end end)
-  o.vendedor = opcao(3, "Aviso no vendedor", "Ao abrir um vendedor NPC, lista no chat o que ele vende que rende no leilão.",
+  o.vendedor = opcao(3, "", "Aviso no vendedor", "Ao abrir um vendedor NPC, lista no chat o que ele vende que rende no leilão.",
     function() GoblinomicsOpcoes.vendedor = GoblinomicsOpcoes.vendedor == false end)
-  local diag = botao(o, "Diagnóstico", 110, function()
-    if o.textoDiag:IsShown() then o.textoDiag:Hide() else o.textoDiag:SetText(G.diagnostico and G.diagnostico() or "indisponível"); o.textoDiag:Show() end
+  o.pele = opcao(4, "", "Aparência da janela", "Do jogo: moldura e botões padrão. Lisa: escura e dourada, como o site. Vale ao recarregar.",
+    function() GoblinomicsOpcoes.pele = GoblinomicsOpcoes.pele == "lisa" and "jogo" or "lisa" end)
+  opcao(5, "Diagnóstico", "O que este cliente do jogo oferece", "Para mandar ao Claude quando algo não funcionar.", function()
+    if o.textoDiag:IsShown() then
+      o.textoDiag:Hide()
+    else
+      o.textoDiag:SetText(G.diagnostico and G.diagnostico() or "indisponível")
+      o.textoDiag:Show()
+    end
   end)
-  diag:SetPoint("TOPLEFT", 0, -3 * 38)
-  local t = texto(o, "GameFontHighlight")
-  t:SetPoint("LEFT", diag, "RIGHT", 12, 6)
-  t:SetText("O que este cliente do jogo oferece")
-  local e = texto(o, "GameFontHighlightSmall", COR.apagado)
-  e:SetPoint("LEFT", diag, "RIGHT", 12, -7)
-  e:SetText("Para mandar ao Claude quando algo não funcionar.")
   o.textoDiag = texto(o, "GameFontHighlightSmall")
-  o.textoDiag:SetPoint("TOPLEFT", 0, -4 * 38 - 4)
-  o.textoDiag:SetWidth(LARGURA - 2 * MARGEM)
+  o.textoDiag:SetPoint("TOPLEFT", 0, -5 * 36 - 2)
+  o.textoDiag:SetWidth(LARGURA - 2 * P.margem - 8)
   if o.textoDiag.SetWordWrap then o.textoDiag:SetWordWrap(true) end
   o.textoDiag:Hide()
   o:Hide()
   return o
 end
 
-local function criar()
-  janela = CreateFrame("Frame", "GoblinomicsJanela", UIParent)
-  janela:SetSize(LARGURA, ALTURA_DA_JANELA)
-  janela:SetPoint("CENTER", UIParent, "CENTER", 0, 30)
+-- O que as duas aparências têm em comum: comportamento da janela, textos, linhas, opções e rodapé.
+local function criarConteudo()
   janela:SetFrameStrata("HIGH")
-  retangulo(janela, "BACKGROUND", COR.fundo):SetAllPoints(janela)
-  contornar(janela, COR.borda)
   janela:EnableMouse(true)
   janela:SetMovable(true)
   janela:RegisterForDrag("LeftButton")
   janela:SetScript("OnDragStart", janela.StartMoving)
   janela:SetScript("OnDragStop", janela.StopMovingOrSizing)
   janela:SetClampedToScreen(true)
+  _G["GoblinomicsJanela"] = janela
   if UISpecialFrames then table.insert(UISpecialFrames, "GoblinomicsJanela") end
   janela:EnableMouseWheel(true)
   janela:SetScript("OnMouseWheel", function(_, sentido)
     deslocamento = deslocamento - sentido * 3
     desenhar()
   end)
+
+  janela.cabecalho = texto(janela, "GameFontHighlightSmall", COR.apagado)
+  janela.cabecalho:SetPoint("TOPLEFT", P.margem + 4, P.topo + 50)
+  janela.cabecalho:SetWidth(LARGURA - 2 * P.margem - 8)
+  janela.cabecalho:SetHeight(26)
+  janela.cabecalho:SetJustifyV("TOP")
+  -- Títulos das colunas, alinhados com as das linhas.
+  janela.colunas = {}
+  for k, c in ipairs({{28, 280, "LEFT"}, {312, 146, "RIGHT"}, {474, 200, "LEFT"}}) do
+    local t = texto(janela, "GameFontNormalSmall", COR.ouro)
+    t:SetPoint("TOPLEFT", P.margem + c[1], P.topo + 17)
+    t:SetWidth(c[2])
+    t:SetJustifyH(c[3])
+    janela.colunas[k] = t
+  end
+  janela.linhas = {}
+  for k = 1, LINHAS do janela.linhas[k] = criarLinha(k) end
+  janela.trilho = retangulo(janela, "BORDER", COR.trilho)
+  janela.trilho:SetPoint("TOPRIGHT", -P.margem + 6, P.topo)
+  janela.trilho:SetSize(4, LINHAS * ALTURA)
+  janela.cursor = retangulo(janela, "ARTWORK", COR.cursor)
+  janela.cursor:SetWidth(4)
+  janela.opcoes = criarOpcoes()
+
+  janela.pagina = texto(janela, "GameFontHighlightSmall", COR.apagado)
+  janela.pagina:SetPoint("BOTTOMRIGHT", -P.margem - 4, P.rodape + 6)
+  janela.acao = botao(janela, "", 290, function()
+    local aba = abaDe(abaAtual)
+    if aba.acao then
+      local ok, erro = pcall(aba.acao.fazer, linhasDaAba)
+      if not ok then dizer("não deu certo: " .. tostring(erro)) end
+    end
+  end)
+  janela.acao:SetPoint("BOTTOMLEFT", P.margem, P.rodape)
+  janela.alternar = botao(janela, "", 150, function()
+    local aba = abaDe(abaAtual)
+    if aba.alternar then
+      aba.alternar.fazer()
+      deslocamento, selecionada = 0, nil
+      montar()
+    end
+  end)
+  janela.alternar:SetPoint("LEFT", janela.acao, "RIGHT", 8, 0)
+  janela:Hide()
+end
+
+-- ---- Aparência "jogo": moldura, botões e abas padrão do cliente ----
+
+local function criarNoEstiloDoJogo()
+  pele = "jogo"
+  local modelo
+  for _, tentativa in ipairs({"ButtonFrameTemplate", "BasicFrameTemplateWithInset", "BasicFrameTemplate"}) do
+    local ok, quadro = pcall(CreateFrame, "Frame", "GoblinomicsJanela", UIParent, tentativa)
+    if ok and quadro then janela, modelo = quadro, tentativa; break end
+  end
+  if not janela then error("nenhum modelo de moldura do jogo existe neste cliente") end
+  local comRetrato = modelo == "ButtonFrameTemplate"
+  -- Com a barra de botões do modelo, o quadro interno termina 26 pixels acima do fundo: é onde ficam os nossos.
+  P = {margem = 10, topo = comRetrato and -112 or -104, rodape = 4}
+  janela:SetSize(LARGURA, -P.topo + LINHAS * ALTURA + 34)
+  janela:SetPoint("CENTER", UIParent, "CENTER", 0, 30)
+
+  -- Título e, quando o modelo tem o círculo do retrato, a moeda dentro dele.
+  local titulo = "Goblinomics"
+  if janela.SetTitle then
+    pcall(janela.SetTitle, janela, titulo)
+  else
+    local t = janela.TitleText or (janela.TitleContainer and janela.TitleContainer.TitleText)
+    if t and t.SetText then t:SetText(titulo) end
+  end
+  if comRetrato then
+    local posto = janela.SetPortraitToAsset and pcall(janela.SetPortraitToAsset, janela, G.ICONE)
+    if not posto then
+      local retrato = (janela.PortraitContainer and janela.PortraitContainer.portrait) or janela.portrait or janela.Portrait
+      if retrato and retrato.SetTexture then retrato:SetTexture(G.ICONE) end
+    end
+  end
+
+  janela.estado = texto(janela, "GameFontHighlightSmall")
+  janela.estado:SetPoint("TOPLEFT", comRetrato and 66 or 14, -36)
+  local atualizar = botao(janela, "Atualizar preços", 130, function() G.recarregar() end)
+  atualizar:SetPoint("TOPRIGHT", -10, -30)
+
+  -- Abas penduradas embaixo da janela, como nas janelas do próprio jogo.
+  local abas, anterior = {}, nil
+  for k, aba in ipairs(ABAS) do
+    local b
+    for _, tentativa in ipairs({"PanelTabButtonTemplate", "CharacterFrameTabButtonTemplate"}) do
+      local ok, feito = pcall(CreateFrame, "Button", "GoblinomicsJanelaTab" .. k, janela, tentativa)
+      if ok and feito then b = feito; break end
+    end
+    if not b then error("nenhum modelo de aba do jogo existe neste cliente") end
+    b:SetID(k)
+    b:SetText(aba.rotulo)
+    if PanelTemplates_TabResize then pcall(PanelTemplates_TabResize, b, 0) end
+    if anterior then
+      -- As abas novas encostam uma na outra; as antigas se sobrepõem um pouco.
+      b:SetPoint("LEFT", anterior, "RIGHT", b.LeftActive and 1 or -15, 0)
+    else
+      b:SetPoint("TOPLEFT", janela, "BOTTOMLEFT", 11, 2)
+    end
+    b:SetScript("OnClick", function() trocarAba(aba.chave) end)
+    b.chave = aba.chave
+    abas[k], anterior = b, b
+  end
+  janela.Tabs, janela.numTabs = abas, #abas
+  if PanelTemplates_SetNumTabs then pcall(PanelTemplates_SetNumTabs, janela, #abas) end
+  janela.marcarAbas = function()
+    for k, b in ipairs(abas) do
+      if b.chave == abaAtual and PanelTemplates_SetTab then pcall(PanelTemplates_SetTab, janela, k) end
+    end
+  end
+  criarConteudo()
+end
+
+-- ---- Aparência "lisa": escura e dourada, como o site ----
+
+local function criarLisa()
+  pele = "lisa"
+  P = {margem = 14, topo = -132, rodape = 11}
+  janela = CreateFrame("Frame", nil, UIParent)
+  janela:SetSize(LARGURA, -P.topo + LINHAS * ALTURA + 60)
+  janela:SetPoint("CENTER", UIParent, "CENTER", 0, 30)
+  retangulo(janela, "BACKGROUND", COR.fundo):SetAllPoints(janela)
+  contornar(janela, COR.borda)
 
   -- Faixa do título: ícone, nome, estado dos dados, atualizar e fechar.
   local faixa = retangulo(janela, "BORDER", COR.faixa)
@@ -500,7 +634,7 @@ local function criar()
   faixa:SetHeight(42)
   local icone = janela:CreateTexture(nil, "ARTWORK")
   icone:SetSize(28, 28)
-  icone:SetPoint("TOPLEFT", MARGEM, -8)
+  icone:SetPoint("TOPLEFT", P.margem, -8)
   icone:SetTexture(G.ICONE)
   local titulo = texto(janela, "GameFontNormalLarge", COR.ouro)
   titulo:SetPoint("LEFT", icone, "RIGHT", 8, 0)
@@ -508,7 +642,7 @@ local function criar()
   janela.estado = texto(janela, "GameFontHighlightSmall", COR.apagado)
   janela.estado:SetPoint("LEFT", titulo, "RIGHT", 14, -1)
   local fechar = botao(janela, "X", 24, function() janela:Hide() end)
-  fechar:SetPoint("TOPRIGHT", -MARGEM, -10)
+  fechar:SetPoint("TOPRIGHT", -P.margem, -10)
   local atualizar = botao(janela, "Atualizar preços", 118, function() G.recarregar() end)
   atualizar:SetPoint("RIGHT", fechar, "LEFT", -8, 0)
 
@@ -517,11 +651,11 @@ local function criar()
   sobAbas:SetPoint("TOPLEFT", 1, -72)
   sobAbas:SetPoint("TOPRIGHT", -1, -72)
   sobAbas:SetHeight(1)
-  janela.abas = {}
+  local abas = {}
   for k, aba in ipairs(ABAS) do
     local b = CreateFrame("Button", nil, janela)
     b:SetSize(104, 28)
-    b:SetPoint("TOPLEFT", MARGEM + (k - 1) * 106, -44)
+    b:SetPoint("TOPLEFT", P.margem + (k - 1) * 106, -44)
     b.fundo = retangulo(b, "BACKGROUND", {1, 0.82, 0, 0.07})
     b.fundo:SetAllPoints(b)
     b.sublinhado = retangulo(b, "ARTWORK", COR.ouro)
@@ -535,59 +669,32 @@ local function criar()
     b.rotulo:SetText(aba.rotulo)
     b.chave = aba.chave
     b:SetScript("OnClick", function() trocarAba(aba.chave) end)
-    janela.abas[k] = b
+    abas[k] = b
   end
-
-  janela.cabecalho = texto(janela, "GameFontHighlightSmall", COR.apagado)
-  janela.cabecalho:SetPoint("TOPLEFT", MARGEM, -80)
-  janela.cabecalho:SetWidth(LARGURA - 2 * MARGEM)
-  janela.cabecalho:SetHeight(26)
-  janela.cabecalho:SetJustifyV("TOP")
-
-  -- Títulos das colunas, alinhados com as das linhas.
-  janela.colunas = {}
-  for k, c in ipairs({{28, 280, "LEFT"}, {312, 146, "RIGHT"}, {474, 204, "LEFT"}}) do
-    local t = texto(janela, "GameFontNormalSmall", COR.ouro)
-    t:SetPoint("TOPLEFT", MARGEM + c[1], TOPO_DAS_LINHAS + 17)
-    t:SetWidth(c[2])
-    t:SetJustifyH(c[3])
-    janela.colunas[k] = t
+  janela.marcarAbas = function()
+    for _, b in ipairs(abas) do
+      local ativa = b.chave == abaAtual
+      b.rotulo:SetTextColor(unpack(ativa and COR.ouro or COR.apagado))
+      if ativa then b.sublinhado:Show(); b.fundo:Show() else b.sublinhado:Hide(); b.fundo:Hide() end
+    end
   end
-
-  janela.linhas = {}
-  for k = 1, LINHAS do janela.linhas[k] = criarLinha(k) end
-  janela.trilho = retangulo(janela, "BORDER", COR.trilho)
-  janela.trilho:SetPoint("TOPRIGHT", -MARGEM + 6, TOPO_DAS_LINHAS)
-  janela.trilho:SetSize(4, LINHAS * ALTURA)
-  janela.cursor = retangulo(janela, "ARTWORK", COR.cursor)
-  janela.cursor:SetWidth(4)
-  janela.opcoes = criarOpcoes()
-
-  -- Rodapé: os botões da aba e a contagem.
   local rodape = retangulo(janela, "BORDER", COR.faixa)
   rodape:SetPoint("BOTTOMLEFT", 1, 1)
   rodape:SetPoint("BOTTOMRIGHT", -1, 1)
   rodape:SetHeight(44)
-  janela.pagina = texto(janela, "GameFontHighlightSmall", COR.apagado)
-  janela.pagina:SetPoint("BOTTOMRIGHT", -MARGEM, 17)
-  janela.acao = botao(janela, "", 290, function()
-    local aba = abaDe(abaAtual)
-    if aba.acao then
-      local ok, erro = pcall(aba.acao.fazer, linhasDaAba)
-      if not ok then dizer("não deu certo: " .. tostring(erro)) end
-    end
-  end)
-  janela.acao:SetPoint("BOTTOMLEFT", MARGEM, 11)
-  janela.alternar = botao(janela, "", 150, function()
-    local aba = abaDe(abaAtual)
-    if aba.alternar then
-      aba.alternar.fazer()
-      deslocamento, selecionada = 0, nil
-      montar()
-    end
-  end)
-  janela.alternar:SetPoint("LEFT", janela.acao, "RIGHT", 8, 0)
-  janela:Hide()
+  criarConteudo()
+end
+
+local function criar()
+  if GoblinomicsOpcoes.pele ~= "lisa" then
+    local ok, erro = pcall(criarNoEstiloDoJogo)
+    if ok then return end
+    -- Algum modelo do jogo faltou ou se comportou diferente: esconde o que ficou pela metade e usa a lisa.
+    dizer("a aparência do jogo falhou (" .. tostring(erro) .. "); usando a lisa.")
+    if janela then janela:Hide() end
+    janela = nil
+  end
+  criarLisa()
 end
 
 -- Abre ou fecha a janela; com uma aba pedida, abre nela.

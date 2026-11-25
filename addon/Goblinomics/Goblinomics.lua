@@ -5,7 +5,7 @@
 -- G: a tabela do addon, que o jogo entrega a todos os arquivos dele; é por ela que a Janela.lua usa o que está aqui.
 local _, G = ...
 G = G or {}
-local VERSAO = "1.4"
+local VERSAO = "1.5"
 local D = GoblinomicsDados
 local OURO, CINZA, VERDE, VERMELHO, BRANCO = "|cffffd100", "|cff9d9d9d", "|cff40ff40", "|cffff5050", "|cffffffff"
 local ICONE = "Interface\\AddOns\\Goblinomics\\Icone"
