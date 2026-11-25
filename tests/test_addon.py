@@ -102,9 +102,14 @@ class TestAddon(unittest.TestCase):
             self.assertIn(b"SLASH_GOBLINOMICS1", (Path(pasta) / "addon" / "Goblinomics.lua").read_bytes())
             self.assertIn(b"Interface", (Path(pasta) / "addon" / "Goblinomics.toc").read_bytes())
             base = Path(pasta) / "addon"
-            self.assertEqual((base / "arquivos.txt").read_bytes().split(b"\r\n")[:2],
-                             [b"Dados.lua GoblinomicsDados", b"Goblinomics.lua SLASH_GOBLINOMICS1"])
-            self.assertIn(b"Janela.lua GoblinomicsJanela", (base / "arquivos.txt").read_bytes())
+            import hashlib
+            lista = [l.split(b" ") for l in (base / "arquivos.txt").read_bytes().split(b"\r\n") if l]
+            self.assertEqual([l[:2] for l in lista[:3]], [[b"Dados.lua", b"GoblinomicsDados"],
+                             [b"Goblinomics.lua", b"SLASH_GOBLINOMICS1"], [b"Janela.lua", b"GoblinomicsJanela"]])
+            # A assinatura é a do conteúdo publicado: muda só quando o arquivo muda.
+            for nome, _, assinatura in lista:
+                self.assertEqual(assinatura.decode(), hashlib.sha1((base / nome.decode()).read_bytes()).hexdigest()[:16])
+            self.assertIn(b"/mo 5", (base / "agendar.bat").read_bytes())
             self.assertIn(b"GoblinomicsJanela", (base / "Janela.lua").read_bytes())
             self.assertIn(b"\r\n", (base / "atualizar.bat").read_bytes())
             self.assertEqual((base / "Icone.tga").read_bytes(), (addon.FONTES / "Icone.tga").read_bytes())

@@ -4,6 +4,7 @@ O jogo não acessa a internet. Um .bat no Windows baixa o Dados.lua do site para
 e o jogo o lê ao entrar com o personagem ou com /reload. Vai só a casa padrão, com as mesmas contas
 simples do bot (consulta.py), para os números baterem com os do site.
 """
+import hashlib
 import json
 import os
 import zipfile
@@ -21,7 +22,7 @@ ARQUIVOS = (("Dados.lua", "GoblinomicsDados"), ("Goblinomics.lua", "SLASH_GOBLIN
             ("Janela.lua", "GoblinomicsJanela"), ("Goblinomics.toc", "Interface"), ("Icone.tga", "-"))
 # O atualizar.bat também fica no site para ser baixado à mão com curl (arquivo baixado assim não fica
 # bloqueado pelo Windows, ao contrário do que sai de um zip); ele não se atualiza sozinho.
-NO_SITE = tuple(nome for nome, _ in ARQUIVOS if nome != "Dados.lua") + ("atualizar.bat",)
+NO_SITE = tuple(nome for nome, _ in ARQUIVOS if nome != "Dados.lua") + ("atualizar.bat", "agendar.bat")
 
 
 MAX_NOMES = 4      # quem faz, vendedores, monstros e mapas por linha da dica
@@ -229,7 +230,13 @@ def gerar(cfg):
     for nome in NO_SITE:
         if (FONTES / nome).exists():
             _trocar(destino / nome, _para_windows(FONTES / nome))
-    _trocar(destino / "arquivos.txt", "".join(f"{nome} {marca}\r\n" for nome, marca in ARQUIVOS).encode())
+    # A terceira coluna é a assinatura do conteúdo: o .bat só baixa o arquivo quando ela muda. A data que o
+    # GitHub informa não serve para isso, porque muda a cada publicação, e o site é republicado a cada 20 min.
+    def assinatura(nome):
+        conteudo = texto if nome == "Dados.lua" else (destino / nome).read_bytes() if (destino / nome).exists() else b""
+        return hashlib.sha1(conteudo).hexdigest()[:16]
+    _trocar(destino / "arquivos.txt",
+            "".join(f"{nome} {marca} {assinatura(nome)}\r\n" for nome, marca in ARQUIVOS).encode())
     if FONTES.is_dir():
         temporario = destino / "Goblinomics.tmp"
         with zipfile.ZipFile(temporario, "w", zipfile.ZIP_DEFLATED) as z:
